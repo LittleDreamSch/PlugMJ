@@ -1,0 +1,14 @@
+README.md
+pyproject.toml
+src/PlugMJ.egg-info/PKG-INFO
+src/PlugMJ.egg-info/SOURCES.txt
+src/PlugMJ.egg-info/dependency_links.txt
+src/PlugMJ.egg-info/entry_points.txt
+src/PlugMJ.egg-info/requires.txt
+src/PlugMJ.egg-info/top_level.txt
+src/core/__init__.py
+src/core/data_saver.py
+src/core/log.py
+src/core/main.py
+src/core/mosek_interface.py
+src/core/task_loader.py

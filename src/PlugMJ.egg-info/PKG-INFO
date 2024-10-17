@@ -1,0 +1,11 @@
+Metadata-Version: 2.1
+Name: PlugMJ
+Version: 1.0.0
+Summary: 从 Mathematica 导出表示 SDP 问题的 Json 文件，python 端读取 Json 文件，并使用 Mosek 求解 SDP 问题
+Author-email: Dream <449185666@qq.com>
+Requires-Python: >=3.11
+Description-Content-Type: text/markdown
+Requires-Dist: loguru>=0.7.2
+Requires-Dist: mosek>=10.2.5
+Requires-Dist: numpy>=2.1.2
+Requires-Dist: pandas>=2.2.3

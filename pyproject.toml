@@ -1,0 +1,24 @@
+[project]
+name = "PlugMJ"
+version = "1.0.0"
+description = "从 Mathematica 导出表示 SDP 问题的 Json 文件，python 端读取 Json 文件，并使用 Mosek 求解 SDP 问题"
+authors = [{name="Dream", email="449185666@qq.com"}]
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "loguru>=0.7.2",
+    "mosek>=10.2.5",
+    "numpy>=2.1.2",
+    "pandas>=2.2.3",
+]
+
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+namespace = false
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[project.scripts]
+PlugMJ = "core.main:main"
