@@ -4,15 +4,19 @@
 
 import mosek
 import numpy as np
-from loguru import logger
-from core.task_loader import TaskLoader
-from core.data_saver import DataSaver
-from core.log import Log
+from interface.interface import Interface
+from data.task_loader import TaskLoader
+from data.data_saver import DataSaver
+from utils.log import Log
 
 
-class MosekInterface:
+class MosekInterface(Interface):
     def __init__(
-        self, task_loader: TaskLoader, logger: Log, data_saver: DataSaver, g=0
+        self,
+        task_loader: TaskLoader,
+        logger: Log,
+        data_saver: DataSaver,
+        **MOSEK_OPTIONS,
     ):
         """
         初始化MOSEK接口
@@ -21,15 +25,9 @@ class MosekInterface:
             task_loader (TaskLoader): 任务加载器
             logger (Log): 日志器
             data_saver (DataSaver): 数据保存器
-            g (float): 参数值
+            **MOSEK_OPTIONS: MOSEK 参数
         """
-        self.task_loader = task_loader
-        self.logger = logger
-        self.data_saver = data_saver
-
-        # 创建MOSEK环境和任务
-        self.env = mosek.Env()
-        self.task = self.env.Task()
+        super().__init__(task_loader, logger, data_saver, **MOSEK_OPTIONS)
 
         # 初始化 MOSEK
         self.init_mosek()
@@ -39,7 +37,9 @@ class MosekInterface:
 
         ## Logger
         self.task.set_Stream(mosek.streamtype.log, self.mosek_log)
-        self.task.putintparam(mosek.iparam.log_cut_second_opt, 0)  # 关闭 mosek 日志衰减
+
+        # 设置参数
+        self.mosek_options_handdler(**MOSEK_OPTIONS)
 
     def mosek_log(self, msg):
         """
@@ -54,6 +54,10 @@ class MosekInterface:
         """
         初始化 MOSEK 参数
         """
+        # 创建MOSEK环境和任务
+        self.env = mosek.Env()
+        self.task = self.env.Task()
+
         ## 初始化 MOSEK 参数
         # 设置任务名
         self.task.puttaskname(self.task_loader.name)
@@ -69,6 +73,8 @@ class MosekInterface:
         self.task.appendbarvars(dims)
         # 设置精度
         self.eps = self.task_loader.eps
+        # 设置初始点
+        self.set_start_point()
 
     def init_problem(self):
         """
@@ -131,9 +137,7 @@ class MosekInterface:
 
     @property
     def target(self):
-        if self._target is None:
-            self._target = ([], [])
-        return self._target
+        return super().target
 
     @target.setter
     def target(self, c):
@@ -157,9 +161,7 @@ class MosekInterface:
         """
         获取 PSD 约束
         """
-        if self._psd is None:
-            return []
-        return self._psd
+        return super().psd
 
     @psd.setter
     def psd(self, psd):
@@ -194,9 +196,7 @@ class MosekInterface:
         """
         获取参数值
         """
-        if self._g is None:
-            self._g = 0
-        return self._g
+        return super().g
 
     @g.setter
     def g(self, g):
@@ -222,6 +222,14 @@ class MosekInterface:
                 row, mosek.boundkey.fx, self._cons[row], self._cons[row]
             )
 
+    @property
+    def lc(self):
+        return super().lc
+
+    @lc.setter
+    def lc(self, lcs):
+        pass
+
     def parse_ineqs(self):
         """
         解析非线性约束
@@ -236,9 +244,7 @@ class MosekInterface:
         """
         获取精度
         """
-        if self._eps is None:
-            self._eps = 1e-6
-        return self._eps
+        return super().eps
 
     @eps.setter
     def eps(self, eps):
@@ -250,47 +256,47 @@ class MosekInterface:
         """
         self._eps = eps
         tol_params = self.tolerance_params()
-        self.logger.debug("SET TOLERANCE PARAMS")
         for param in tol_params:
             self.task.putparam(param, str(self._eps))
 
-    @property
-    def start_point(self):
-        # TODO: 实现 start_point 的设置，参考 dparam.intpnt_qo_tol_pfeas 和 dparam.intpnt_tol_dfeas 等参数
+    def set_start_point(self):
+        # TODO: 设置初始点为满足变量边界条件的点，这里的 constant 怎么指定?
+        self.task.putintparam(
+            mosek.iparam.intpnt_starting_point, mosek.startpointtype.constant
+        )
         pass
 
-    @staticmethod
-    def tolerance_params():
-        # TODO: 确认一下具体应该设置哪些参数
-        # tolerance parameters from
-        # https://docs.mosek.com/latest/pythonapi/param-groups.html
-        return (
-            # Conic interior-point tolerances
-            "MSK_DPAR_INTPNT_CO_TOL_DFEAS",
-            # "MSK_DPAR_INTPNT_CO_TOL_INFEAS",
-            "MSK_DPAR_INTPNT_CO_TOL_MU_RED",
-            "MSK_DPAR_INTPNT_CO_TOL_PFEAS",
-            "MSK_DPAR_INTPNT_CO_TOL_REL_GAP",
-            # Interior-point tolerances
-            "MSK_DPAR_INTPNT_TOL_DFEAS",
-            # "MSK_DPAR_INTPNT_TOL_INFEAS",
-            "MSK_DPAR_INTPNT_TOL_MU_RED",
-            "MSK_DPAR_INTPNT_TOL_PFEAS",
-            "MSK_DPAR_INTPNT_TOL_REL_GAP",
-            # Simplex tolerances
-            "MSK_DPAR_BASIS_REL_TOL_S",
-            "MSK_DPAR_BASIS_TOL_S",
-            "MSK_DPAR_BASIS_TOL_X",
-            # MIO tolerances
-            "MSK_DPAR_MIO_TOL_ABS_GAP",
-            "MSK_DPAR_MIO_TOL_ABS_RELAX_INT",
-            "MSK_DPAR_MIO_TOL_FEAS",
-            "MSK_DPAR_MIO_TOL_REL_GAP",
-        )
+    def mosek_options_handdler(self, **MOSEK_OPTIONS):
+        """
+        设置 MOSEK 参数
 
-    def save_model(self, name=""):
-        # TODO:
+        Args:
+            **MOSEK_OPTIONS: MOSEK 参数
+        """
+        for key, value in MOSEK_OPTIONS.items():
+            self.task.putparam(key, str(value))
+
+    @property
+    def thread(self):
+        """
+        获取线程数
+        """
+        if self._thread is None:
+            self._thread = 0
+        return self._thread
+
+    @thread.setter
+    def thread(self, thread):
+        """
+        设置线程数
+        Args:
+            thread (int): 线程数
+        """
+        self._thread = thread
+        self.task.putintparam(mosek.iparam.num_threads, thread)
+
+    def save_model(self, name="task.ptf"):
         """
         保存模型
         """
-        pass
+        self.task.writedata(name)

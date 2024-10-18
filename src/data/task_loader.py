@@ -5,6 +5,7 @@
 import numpy as np
 import json
 import time
+import os
 
 
 class TaskLoader:
@@ -21,14 +22,19 @@ class TaskLoader:
             logger: 日志记录器
             name: 任务名
         """
-        logger.info(f"Load task from {task_json_file}")
-        with open(task_json_file, "r") as f:
-            self.task_json = json.load(f)
+        # 判断 task_json_file 是否存在
+        if not os.path.exists(task_json_file):
+            logger.critical(f"Task file {task_json_file} not found.")
+            exit(1)
+        else:
+            logger.info(f"Load task from {task_json_file}")
+            with open(task_json_file, "r") as f:
+                self.task_json = json.load(f)
 
-        self.logger = logger
-        self.name = name
-        self.load_task()
-        self.log_info()
+            self.logger = logger
+            self.name = name
+            self.load_task()
+            self.log_info()
 
     def load_task(self):
         """

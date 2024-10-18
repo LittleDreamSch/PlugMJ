@@ -1,2 +1,0 @@
-[console_scripts]
-PlugMJ = core.main:main

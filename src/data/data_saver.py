@@ -3,7 +3,7 @@
 """
 
 import pandas as pd
-from core.log import Log
+from utils.log import Log
 
 
 class DataSaver:
