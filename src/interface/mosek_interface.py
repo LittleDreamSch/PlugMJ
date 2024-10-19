@@ -29,6 +29,7 @@ class MosekInterface(Interface):
             **MOSEK_OPTIONS: MOSEK 参数
         """
         super().__init__(task_loader, logger, data_saver, **MOSEK_OPTIONS)
+        logger.info("use Mosek Fusion interface")
 
         # 初始化 MOSEK
         self.init_mosek()
@@ -109,7 +110,6 @@ class MosekInterface(Interface):
             # 获取问题状态
             solsta = self.task.getsolsta(mosek.soltype.itr)
             if solsta == mosek.solsta.optimal:
-                # TODO: 最优解保存
                 self.logger.success(f"Find optimal solution for g = {g_val}")
                 sol = np.array(self.task.getxx(mosek.soltype.itr))
                 # 插入最优解
@@ -142,14 +142,6 @@ class MosekInterface(Interface):
 
     @target.setter
     def target(self, c):
-        """
-        设置目标函数
-
-        Args:
-            c: (c_idx, c_val)
-                c_idx (list): 目标函数变量的索引
-                c_val (list): 目标函数变量的系数
-        """
         c_idx, c_val = c
         self._target = (c_idx, c_val)
         self.task.putclist(c_idx, c_val)
@@ -159,45 +151,23 @@ class MosekInterface(Interface):
 
     @property
     def psd(self):
-        """
-        获取 PSD 约束
-        """
         return super().psd
 
     @psd.setter
     def psd(self, psd):
         """
-        设置 PSD 约束
+        将 coo psd 表示为 mosek 格式
+        vec_psd: sVec(psd) 格式表示的 PSD 矩阵上三角部分
 
-        Args:
-            psd: [
-                     [cons_coo_1, [F_coo_1], [Index_1]],
-                     [cons_coo_2, [F_coo_2], [Index_2]],
-                     ...
-                     [cons_coo_m, [F_coo_m], [Index_m]]
-                 ]
-                 每一项表示一个 PSD 矩阵的上三角部分，cons_coo 为常数项的 coo 格式表示，F_coo 为矩阵的 coo 格式表示，Index 为矩阵的索引，
-                 psd 矩阵可以被还原为 cons_coo_1 + F_coo_1 @ Index_1
+                [[f_row], [f_col], [f_val], [g_row], [g_val]]
 
-        Args:
-            psd = f_row, f_col, f_val, g_row, g_val
-                f_row (list): PSD 变量的行索引
-                f_col (list): PSD 变量的列索引
-                f_val (list): PSD 变量的系数
-                g_row (list): PSD 常数项索引
-                g_val (list): PSD 常数项系数
+                Mosek 的 conic 约束中 F[f_row[i], f_col[i]] = f_vals[i], g[g_row[i]] = g_vals[i]
         """
-        # 将 coo psd 表示为 mosek 格式
-        # vec_psd: sVec(psd) 格式表示的 PSD 矩阵上三角部分
-        #
-        #         [[f_row], [f_col], [f_val], [g_row], [g_val]]
-        #
-        #         Mosek 的 conic 约束中 F[f_row[i], f_col[i]] = f_vals[i], g[g_row[i]] = g_vals[i]
         start_row = 0
         f_row, f_col, f_val, g_row, g_val = [], [], [], [], []
         for id_psd, each_psd in enumerate(psd):
             dim = self.task_loader.d_psd[id_psd]
-            cons_coo, F_coo, var_index = each_psd[0:3]
+            cons_coo, F_coo, var_index = each_psd
             # 常数项
             r, v = MosekInterface.sVec((cons_coo.row, cons_coo.col, cons_coo.data), dim)
             g_row.extend([_ + start_row for _ in r])
@@ -231,7 +201,7 @@ class MosekInterface(Interface):
         """
         获取参数值
         """
-        return super().g
+        return self._g
 
     @g.setter
     def g(self, g):

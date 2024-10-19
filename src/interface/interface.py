@@ -77,27 +77,16 @@ class Interface:
     def psd(self, psd):
         """
         设置 PSD 约束
-        """
-        pass
-
-    @property
-    @abstractmethod
-    def g(self):
-        """
-        获取参数值
-        """
-        if self._g is None:
-            self._g = 1
-        return self._g
-
-    @g.setter
-    @abstractmethod
-    def g(self, g):
-        """
-        设置参数值
 
         Args:
-            g (float): 参数值
+            psd: [
+                     [cons_coo_1, [F_coo_1], [Index_1]],
+                     [cons_coo_2, [F_coo_2], [Index_2]],
+                     ...
+                     [cons_coo_m, [F_coo_m], [Index_m]]
+                 ]
+                 每一项表示一个 PSD 矩阵的上三角部分，cons_coo 为常数项的 coo 格式表示，F_coo 为矩阵的 coo 格式表示，Index 为矩阵的索引，
+                 psd 矩阵可以被还原为 cons_coo_1 + F_coo_1 @ Index_1
         """
         pass
 
@@ -140,12 +129,12 @@ class Interface:
 
         Args:
             lcs (list): 线性约束
+                Ag, A, bg, b : (A + g * Ag) @ x == b + g * bg
         """
         pass
 
     @staticmethod
     def tolerance_params():
-        # TODO: 确认一下具体应该设置哪些参数
         # tolerance parameters from
         # https://docs.mosek.com/latest/pythonapi/param-groups.html
         return (

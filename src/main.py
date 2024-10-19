@@ -2,11 +2,12 @@ import argparse
 
 from data.task_loader import TaskLoader
 from interface.mosek_interface import MosekInterface
+from interface.cvxpy_interface import CvxpyInterface
 from data.data_saver import DataSaver
 from utils.log import Log
 
 cow = """ __________________________ 
-< PlugMJ Beta 1.0.0 @Dream >
+< PlugMJ Beta 1.1.0 @Dream >
  -------------------------- 
         \\   ^__^
          \\  (OO)\\_______
@@ -48,6 +49,8 @@ def generate_mosek_options(args):
         "MSK_IPAR_NUM_THREADS": int(args.threads),
         # 日志衰减
         "MSK_IPAR_LOG_CUT_SECOND_OPT": 0,
+        # 求解对偶问题
+        # "MSK_IPAR_INTPNT_SOLVE_FORM": "MSK_SOLVE_DUAL",
     }
 
 
@@ -90,12 +93,14 @@ def build_solver(args):
 
     saver = DataSaver(args.output, logger)
     data = TaskLoader(args.task, logger, args.name)
+    task = None
 
     if args.interface == "original":  # 原始接口
         task = MosekInterface(data, logger, saver, **MOSEK_OPTIONS)
-        return task, logger
+    elif args.interface == "cvxpy":  # cvxpy 接口
+        task = CvxpyInterface(data, logger, saver, **MOSEK_OPTIONS)
 
-    return None, logger
+    return task, logger
 
 
 def main():
@@ -120,14 +125,14 @@ def main():
 def debug():
     logger = Log()
     saver = DataSaver("output.csv", logger)
-    data = TaskLoader("../example/Task.json", logger, "SDP")
-
-    task = MosekInterface(data, logger, saver)
+    data = TaskLoader("../example/Task_Low08.json", logger, "SDP")
+    task = CvxpyInterface(
+        data,
+        logger,
+        saver,
+    )
     task.optimize()
 
 
-debug()
-
 if __name__ == "__main__":
-    # main()
-    pass
+    main()

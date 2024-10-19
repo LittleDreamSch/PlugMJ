@@ -45,7 +45,7 @@ class Log:
             sys.stdout,
             format="<green>{time:YYYY-MM-DD @ HH:mm:ss}</green> | <level>{level.name:<7}</level> | {message}",
             level="DEBUG",
-            enqueue=True,
+            # enqueue=True,
             backtrace=True,
         )
 

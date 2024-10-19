@@ -126,14 +126,20 @@ class TaskLoader:
             for key in each_psd:
                 if key == "Cons":
                     cons_coo = coo(
-                        (each_psd[key][2], (each_psd[key][0], each_psd[key][1])),
+                        (
+                            np.array(each_psd[key][2], dtype=np.float64),
+                            (each_psd[key][0], each_psd[key][1]),
+                        ),
                         shape=(dim, dim),
                     )
                 else:
                     index.append(int(key))
                     F_coo.append(
                         coo(
-                            (each_psd[key][2], (each_psd[key][0], each_psd[key][1])),
+                            (
+                                np.array(each_psd[key][2], dtype=np.float64),
+                                (each_psd[key][0], each_psd[key][1]),
+                            ),
                             shape=(dim, dim),
                         )
                     )
