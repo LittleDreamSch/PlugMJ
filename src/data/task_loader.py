@@ -6,6 +6,7 @@ import numpy as np
 import json
 import time
 import os
+from scipy.sparse import coo_matrix as coo
 
 
 class TaskLoader:
@@ -56,11 +57,11 @@ class TaskLoader:
         # PSD 约束维度
         self.d_psd = self.task_json["constrains_dim"]
         # 目标函数
-        self.target = self.load_target(self.task_json["target"])
+        self.target = self.task_json["target"]
         # PSD 约束
         self.psd = self.load_psd(self.d_psd, self.task_json["constrains"])
         # 线性约束
-        self.lc = self.load_lc(self.task_json["eqConstrains"])
+        self.lc = self.task_json["eqConstrains"]
         # 线性约束数量
         self.n_lc = len(self.task_json["eqConstrains"])
 
@@ -68,7 +69,12 @@ class TaskLoader:
         end_time = time.time()
         self.logger.success(f"Loading task time: {end_time - start_time:.4f}s")
 
-    def load_target(self, raw_target):
+    @property
+    def target(self):
+        return self._target
+
+    @target.setter
+    def target(self, raw_target):
         """
         加载目标函数
 
@@ -82,7 +88,7 @@ class TaskLoader:
         self.logger.info("Loading target function...")
         c_index = [c[0] for c in raw_target]
         c_value = [c[1] for c in raw_target]
-        return c_index, c_value
+        self._target = c_index, c_value
 
     def load_psd(self, dims, raw_psd):
         """
@@ -100,71 +106,48 @@ class TaskLoader:
                      每一项描述了一个 PSD 矩阵的上三角部分，其中 Index 为矩阵的索引，ROW/COL 为非零元素的行/列索引，VAL 为非零元素的值，Cons 为常数项
 
         Returns:
-            vec_psd: sMat(psd) 格式表示的 PSD 矩阵上三角部分
-                     [[f_row], [f_col], [f_val], [g_row], [g_val]]
-
-                     表示 Mosek 的 conic 约束中 F[f_row[i], f_col[i]] = f_vals[i], g[g_row[i]] = g_vals[i]
+            psd: [
+                     [cons_coo_1, [F_coo_1], [Index_1]],
+                     [cons_coo_2, [F_coo_2], [Index_2]],
+                     ...
+                     [cons_coo_m, [F_coo_m], [Index_m]]
+                 ]
+                 每一项表示一个 PSD 矩阵的上三角部分，cons_coo 为常数项的 coo 格式表示，F_coo 为矩阵的 coo 格式表示，Index 为矩阵的索引，
+                 psd 矩阵可以被还原为 cons_coo_1 + F_coo_1 @ Index_1
         """
         self.logger.info("Loading PSD ..")
 
-        def sMat(psd, dim):
-            """
-            将 PSD 矩阵转换为 sMat 格式
-
-            sMat([m11, m12, m13;
-                  m12, m22, m23;
-                  m13, m23, m33]) = [m11, sqrt(2) * m12, sqrt(2) * m13, m22, sqrt(2) * m23, m33]
-
-            Args:
-                psd: 原始 PSD 矩阵数据，[[row], [col], [val]]
-                dim: 矩阵维度
-
-            Returns:
-                row: 非零元素行索引
-                val: 非零元素的值
-            """
-            row = []
-            val = []
-
-            # 转置 psd
-            psd_t = [[psd[0][i], psd[1][i], psd[2][i]] for i in range(len(psd[0]))]
-            # 排序
-            psd_t = sorted(psd_t, key=lambda x: (x[0], x[1]))
-
-            for each_psd in psd_t:
-                id = int(
-                    1 / 2 * (2 * dim - each_psd[0] + 1) * each_psd[0]
-                    + each_psd[1]
-                    - each_psd[0]
-                )
-                row.append(id)  # 计算列索引
-                val.append(
-                    each_psd[2]
-                    if each_psd[0] == each_psd[1]
-                    else np.sqrt(2) * each_psd[2]
-                )
-
-            return row, val
-
-        # 转化所有的 PSD 为 sMat 格式
-        start_row = 0
-        psd_cols, psd_rows, psd_vals, g_rows, g_vals = [], [], [], [], []
+        psds = []
         for id_psd, each_psd in enumerate(raw_psd):
+            F_coo = []
+            index = []
+            dim = dims[id_psd]
+            cons_coo = coo((dim, dim))
             for key in each_psd:
                 if key == "Cons":
-                    g_row, g_val = sMat(each_psd[key], dims[id_psd])
-                    g_rows.extend([_ + start_row for _ in g_row])
-                    g_vals.extend(g_val)
+                    cons_coo = coo(
+                        (each_psd[key][2], (each_psd[key][0], each_psd[key][1])),
+                        shape=(dim, dim),
+                    )
                 else:
-                    row, val = sMat(each_psd[key], dims[id_psd])
-                    psd_cols.extend([int(key)] * len(row))
-                    psd_rows.extend([_ + start_row for _ in row])
-                    psd_vals.extend(val)
+                    index.append(int(key))
+                    F_coo.append(
+                        coo(
+                            (each_psd[key][2], (each_psd[key][0], each_psd[key][1])),
+                            shape=(dim, dim),
+                        )
+                    )
+            psds.append([cons_coo, F_coo.copy(), index.copy()])
 
-            start_row += int(dims[id_psd] * (dims[id_psd] + 1) / 2)
-        return psd_rows, psd_cols, psd_vals, g_rows, g_vals
+        return psds
 
-    def load_lc(self, raw_lc):
+    @property
+    def lc(self):
+        """获得线性约束"""
+        return self._lc
+
+    @lc.setter
+    def lc(self, raw_lc):
         """
         加载线性约束
 
@@ -172,33 +155,36 @@ class TaskLoader:
 
         (i1[0] + i1[1] * g) * x[j1] + ... == -(cons[0] + cons[1] * g)
 
+        self.lc(tuple):
+            A (coo, n x n_var): 线性约束矩阵常数项
+            Ag(coo, n x n_var): 线性约束矩阵变量项
+            b (np.array, n x 1) : 线性约束常数项
+            bg(np.array, n x 1) : 线性约束变量项
+
+        线性约束可以被表示为 (A + g * Ag) @ x == b + g * bg
+
         Args:
             raw_lc: 原始线性约束数据
 
-        Returns:
-            np.array: [
-                        [[i1_1], [i2_1], ..., [in_1]],
-                        [[i1_2], [i2_2], ..., [in_2]],
-                        ...,
-                        [[i1_n], [i2_n], ..., [in_n]]
-                      ]
-            列索引:   [
-                        [j1_1, j2_1, ..., jn_1],
-                        [j1_2, j2_2, ..., jn_2],
-                        ...,
-                        [j1_n, j2_n, ..., jn_n]
-                      ]
-            np.array: 常数项 [[cons_1], [cons_2], ..., [cons_n]]
         """
         self.logger.info("Loading linear constraints...")
-        lc, col, b = [], [], []
-        for each_lc in raw_lc:
-            # cons
-            b.append([-each_lc[0][0], -each_lc[0][1]])
-            # A
-            lc.append(np.array([_[0] for _ in each_lc[1:]]))  # [[i1], [i2], ..., [in]]
-            col.append([_[1] for _ in each_lc[1:]])  # [j1, j2, ... , jn]，列索引
-        return lc, col, np.array(b)
+        A_row, A_col, A_val, Ag_val = [], [], [], []
+        A_shape = (len(raw_lc), self.n_var)
+        b, bg = [], []
+        for idx, each_lc in enumerate(raw_lc):
+            b.append([-each_lc[0][0]])
+            bg.append([-each_lc[0][1]])
+            A_row.extend([idx] * len(each_lc[1:]))
+            A_col.extend([_[1] for _ in each_lc[1:]])
+            A_val.extend([_[0][0] for _ in each_lc[1:]])
+            Ag_val.extend([_[0][1] for _ in each_lc[1:]])
+
+        self._lc = (
+            coo((A_val, (A_row, A_col)), shape=A_shape),
+            coo((Ag_val, (A_row, A_col)), shape=A_shape),
+            np.array(b),
+            np.array(bg),
+        )
 
     def log_info(self):
         """

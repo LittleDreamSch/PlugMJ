@@ -88,11 +88,14 @@ def build_solver(args):
     logger = Log(args.log)
     print_cow(logger)
 
-    # 求解
     saver = DataSaver(args.output, logger)
     data = TaskLoader(args.task, logger, args.name)
-    task = MosekInterface(data, logger, saver, **MOSEK_OPTIONS)
-    task.optimize()
+
+    if args.interface == "original":  # 原始接口
+        task = MosekInterface(data, logger, saver, **MOSEK_OPTIONS)
+        return task, logger
+
+    return None, logger
 
 
 def main():
@@ -104,8 +107,27 @@ def main():
         parser.print_help()
         exit(1)
 
-    build_solver(args)
+    task, logger = build_solver(args)
 
+    if task is None:
+        parser.print_help()
+        logger.error(f"Interface {args.interface} is not supported.")
+        exit(1)
+    else:
+        task.optimize()
+
+
+def debug():
+    logger = Log()
+    saver = DataSaver("output.csv", logger)
+    data = TaskLoader("../example/Task.json", logger, "SDP")
+
+    task = MosekInterface(data, logger, saver)
+    task.optimize()
+
+
+debug()
 
 if __name__ == "__main__":
-    main()
+    # main()
+    pass

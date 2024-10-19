@@ -8,6 +8,7 @@ from interface.interface import Interface
 from data.task_loader import TaskLoader
 from data.data_saver import DataSaver
 from utils.log import Log
+from scipy.sparse import coo_matrix as coo
 
 
 class MosekInterface(Interface):
@@ -169,6 +170,16 @@ class MosekInterface(Interface):
         设置 PSD 约束
 
         Args:
+            psd: [
+                     [cons_coo_1, [F_coo_1], [Index_1]],
+                     [cons_coo_2, [F_coo_2], [Index_2]],
+                     ...
+                     [cons_coo_m, [F_coo_m], [Index_m]]
+                 ]
+                 每一项表示一个 PSD 矩阵的上三角部分，cons_coo 为常数项的 coo 格式表示，F_coo 为矩阵的 coo 格式表示，Index 为矩阵的索引，
+                 psd 矩阵可以被还原为 cons_coo_1 + F_coo_1 @ Index_1
+
+        Args:
             psd = f_row, f_col, f_val, g_row, g_val
                 f_row (list): PSD 变量的行索引
                 f_col (list): PSD 变量的列索引
@@ -176,7 +187,31 @@ class MosekInterface(Interface):
                 g_row (list): PSD 常数项索引
                 g_val (list): PSD 常数项系数
         """
-        f_row, f_col, f_val, g_row, g_val = psd
+        # 将 coo psd 表示为 mosek 格式
+        # vec_psd: sVec(psd) 格式表示的 PSD 矩阵上三角部分
+        #
+        #         [[f_row], [f_col], [f_val], [g_row], [g_val]]
+        #
+        #         Mosek 的 conic 约束中 F[f_row[i], f_col[i]] = f_vals[i], g[g_row[i]] = g_vals[i]
+        start_row = 0
+        f_row, f_col, f_val, g_row, g_val = [], [], [], [], []
+        for id_psd, each_psd in enumerate(psd):
+            dim = self.task_loader.d_psd[id_psd]
+            cons_coo, F_coo, var_index = each_psd[0:3]
+            # 常数项
+            r, v = MosekInterface.sVec((cons_coo.row, cons_coo.col, cons_coo.data), dim)
+            g_row.extend([_ + start_row for _ in r])
+            g_val.extend(v)
+            # 系数项
+            for _ in range(len(F_coo)):
+                r, v = MosekInterface.sVec(
+                    (F_coo[_].row, F_coo[_].col, F_coo[_].data), dim
+                )
+                f_col.extend([var_index[_]] * len(r))
+                f_row.extend([_ + start_row for _ in r])
+                f_val.extend(v)
+            start_row += dim * (dim + 1) // 2
+
         self._psd = (f_row, f_col, f_val, g_row, g_val)
         # F
         self.task.putafefentrylist(f_row, f_col, f_val)
@@ -209,18 +244,12 @@ class MosekInterface(Interface):
         self._g = g
 
         # 使用新的 g 去更新线性约束
-        a, col, cons = self.task_loader.lc
-        # BUG: 计算得到的 A 可能为零，MOSEK 会有 WARNING
-        self._A = [_[:, 0] + _[:, 1] * g for _ in a]
-        self._cons = cons[:, 0] + cons[:, 1] * g
-        self._col = col
-
-        # 设置新的线性约束
-        for row in range(len(self._A)):
-            self.task.putarow(row, col[row], self._A[row])
-            self.task.putconbound(
-                row, mosek.boundkey.fx, self._cons[row], self._cons[row]
-            )
+        A, Ag, b, bg = self.task_loader.lc
+        AA = coo(A + g * Ag)
+        bb = b + g * bg
+        bb = bb.squeeze(-1)
+        self.task.putaijlist(AA.row, AA.col, AA.data)
+        self.task.putconboundlist(range(len(bb)), [mosek.boundkey.fx] * len(bb), bb, bb)
 
     @property
     def lc(self):
@@ -300,3 +329,42 @@ class MosekInterface(Interface):
         保存模型
         """
         self.task.writedata(name)
+
+    @staticmethod
+    def sVec(psd, dim):
+        """
+        将 PSD 矩阵转换为 svec 格式
+
+        svec([m11, m12, m13;
+                m12, m22, m23;
+                m13, m23, m33]) = [m11, sqrt(2) * m12, sqrt(2) * m13, m22, sqrt(2) * m23, m33]
+        * Mosek 要求 svec 非对角元素为 sqrt(2) * mij
+
+        Args:
+            psd: 原始 PSD 矩阵数据，[[row], [col], [val]]
+            dim: 矩阵维度
+
+        Returns:
+            row: 非零元素行索引
+            val: 非零元素的值
+        """
+        row = []
+        val = []
+
+        # 转置 psd
+        psd_t = [[psd[0][i], psd[1][i], psd[2][i]] for i in range(len(psd[0]))]
+        # 排序
+        psd_t = sorted(psd_t, key=lambda x: (x[0], x[1]))
+
+        for each_psd in psd_t:
+            id = int(
+                1 / 2 * (2 * dim - each_psd[0] + 1) * each_psd[0]
+                + each_psd[1]
+                - each_psd[0]
+            )
+            row.append(id)  # 计算列索引
+            val.append(
+                each_psd[2] if each_psd[0] == each_psd[1] else np.sqrt(2) * each_psd[2]
+            )
+
+        return row, val
