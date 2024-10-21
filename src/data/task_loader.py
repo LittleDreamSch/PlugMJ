@@ -47,9 +47,13 @@ class TaskLoader:
         # 变量个数
         self.n_var = self.task_json["variable_length"]
         # 参数取值
-        self.g_vals = (
-            [0] if "para_value" not in self.task_json else self.task_json["para_value"]
-        )
+        if "para_value" not in self.task_json:
+            self.g_vals = [0]
+        else:
+            if len(self.task_json["para_value"]) == 0:
+                self.g_vals = [0]
+            else:
+                self.g_vals = self.task_json["para_value"]
         # 精度
         self.eps = 1e-6 if "eps" not in self.task_json else self.task_json["eps"]
         # PSD 约束个数
@@ -143,7 +147,7 @@ class TaskLoader:
                             shape=(dim, dim),
                         )
                     )
-            psds.append([cons_coo, F_coo.copy(), index.copy()])
+            psds.append([cons_coo.copy(), F_coo.copy(), index.copy()])
 
         return psds
 

@@ -103,7 +103,7 @@ class Interface:
         """
         获取精度
         """
-        if self._eps is None:
+        if hasattr(self, "_eps") == False:
             self._eps = 1e-6
         return self._eps
 
@@ -124,7 +124,7 @@ class Interface:
         """
         获取线性约束
         """
-        if self._lc is None:
+        if hasattr(self, "_lc") == False:
             self._lc = []
         return self._lc
 

@@ -7,7 +7,7 @@ from data.data_saver import DataSaver
 from utils.log import Log
 
 cow = """ __________________________ 
-< PlugMJ Beta 1.1.1 @Dream >
+< PlugMJ Beta 1.2.1 @Dream >
  -------------------------- 
         \\   ^__^
          \\  (OO)\\_______
@@ -129,18 +129,6 @@ def main():
         exit(1)
     else:
         task.optimize()
-
-
-def debug():
-    logger = Log()
-    saver = DataSaver("output.csv", logger)
-    data = TaskLoader("../example/Task_Low08.json", logger, "SDP")
-    task = CvxpyInterface(
-        data,
-        logger,
-        saver,
-    )
-    task.optimize()
 
 
 if __name__ == "__main__":

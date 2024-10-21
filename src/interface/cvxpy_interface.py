@@ -10,6 +10,7 @@ cvxpy 接口
 
 import cvxpy as cp
 import numpy as np
+from scipy.sparse import coo_matrix
 from interface.interface import Interface
 from data.task_loader import TaskLoader
 from data.data_saver import DataSaver
@@ -83,7 +84,12 @@ class CvxpyInterface(Interface):
     @lc.setter
     def lc(self, lcs):
         A, Ag, b, bg = lcs
-        self._lc = [A @ self.x + self.para * (Ag @ self.x) == b + bg * self.para]
+        if A.shape[0] != 0 and Ag.shape[0] != 0:
+            self._lc = [A @ self.x + self.para * (Ag @ self.x) == b + bg * self.para]
+        elif A.shape[0] == 0 and Ag.shape[0] != 0:
+            self._lc = [self.para * (Ag @ self.x) == b + bg * self.para]
+        elif A.shape[0] != 0 and Ag.shape[0] == 0:
+            self._lc = [A @ self.x == b + bg * self.para]
 
     @property
     def psd(self):
@@ -91,22 +97,79 @@ class CvxpyInterface(Interface):
 
     @psd.setter
     def psd(self, psd):
-        # TODO: vectorize LMI，没找到 cvxpy 的例子
         self._psd = []
         for each_psd in psd:
             cons, f, var_idx = each_psd
-            # NOTE: CVXPY 不要求 X 是对称的以要求其为 PSD，X >> 0 会要求 X + X.T >> 0，对角线元素需要 / 2
-            dig = cons.row == cons.col
-            cons.data[dig] *= 0.5
-            for _ in range(len(f)):
-                f[_].data[f[_].row == f[_].col] *= 0.5
+            f, cons = self.vectorize_psd(cons, f, var_idx)
+            afe = cp.vec_to_upper_tri(f @ self.x + cons)
+            self._psd.append(afe >> 0)
 
-            # psd = cons + f[xi] * xi
-            self._psd.append(
-                cons
-                + cp.sum([f[_] * self.x[var_idx[_]][0] for _ in range(len(var_idx))])
-                >> 0
-            )
+    def vectorize_psd(self, cons, f, var_idx):
+        """
+        psd 约束向量化
+
+        Args:
+            cons (scipy.sparse.coo_matrix): 标量矩阵
+            f (list): 系数矩阵
+            var_idx (list): 变量索引
+
+        Returns:
+            F (np.array, d*(d+1)/2 x n_var): 向量化后的系数矩阵
+            cons (np.array, d*(d+1)/2 x 1): 向量化后的标量矩阵
+        """
+
+        def vec(mat):
+            """
+            向量化矩阵
+
+            Args:
+                mat (scipy.sparse.coo_matrix): 上三角稀疏矩阵
+
+            Returns:
+                row (list): 行索引
+                val (list): 值
+
+            对角线上的元素会 /2，以满足 cvxpy 的格式
+            """
+            t_row = mat.row
+            t_col = mat.col
+            t_val = mat.data
+            dim = mat.shape[0]
+
+            row, val = [], []
+            for i in range(len(t_row)):
+                # 值
+                if t_row[i] == t_col[i]:
+                    val.append(
+                        t_val[i] * 0.5
+                    )  # NOTE: CVXPY 不要求 X 是对称的以要求其为 PSD，X >> 0 会要求 X + X.T >> 0，对角线元素需要 / 2
+                else:
+                    val.append(t_val[i])
+                # 索引
+                row.append(
+                    int(0.5 * (2 * dim - t_row[i] + 1) * t_row[i] + t_col[i] - t_row[i])
+                )
+            return row, val
+
+        dim = cons.shape[0]
+        # 系数矩阵
+        f_row, f_val, f_col = [], [], []
+        for i in range(len(f)):
+            row, val = vec(f[i])
+            f_row += row
+            f_col += [var_idx[i]] * len(row)
+            f_val += val
+        f = coo_matrix(
+            (f_val, (f_row, f_col)),
+            shape=(dim * (dim + 1) // 2, self.task_loader.n_var),
+        )
+        # 标量矩阵
+        cons_row, cons_val = vec(cons)
+        cons = coo_matrix(
+            (cons_val, (cons_row, np.zeros(len(cons_row)))),
+            shape=(dim * (dim + 1) // 2, 1),
+        )
+        return f, cons
 
     @property
     def ineqs(self):
@@ -150,7 +213,7 @@ class CvxpyInterface(Interface):
         # 构造 Mosek 参数
         msk_params = {
             **self.MOSEK_OPTIONS,
-            **self.eps_handler(1e-6),
+            **self.eps_handler(self.eps),
         }
 
         self.logger.info("Start optimizing")

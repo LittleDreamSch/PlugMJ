@@ -1,6 +1,6 @@
 [project]
 name = "PlugMJ"
-version = "1.1.1"
+version = "1.2.1"
 description = "从 Mathematica 导出表示 SDP 问题的 Json 文件，python 端读取 Json 文件，并使用 Mosek 求解 SDP 问题"
 authors = [{name="Dream", email="449185666@qq.com"}]
 readme = "README.md"
