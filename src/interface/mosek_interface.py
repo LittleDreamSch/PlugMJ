@@ -17,6 +17,7 @@ class MosekInterface(Interface):
         task_loader: TaskLoader,
         logger: Log,
         data_saver: DataSaver,
+        direction: str,
         **MOSEK_OPTIONS,
     ):
         """
@@ -26,9 +27,10 @@ class MosekInterface(Interface):
             task_loader (TaskLoader): 任务加载器
             logger (Log): 日志器
             data_saver (DataSaver): 数据保存器
+            direction (str): 优化方向
             **MOSEK_OPTIONS: MOSEK 参数
         """
-        super().__init__(task_loader, logger, data_saver, **MOSEK_OPTIONS)
+        super().__init__(task_loader, logger, data_saver, direction, **MOSEK_OPTIONS)
         logger.info("use Mosek Fusion interface")
 
         # 初始化 MOSEK
@@ -146,8 +148,10 @@ class MosekInterface(Interface):
         self._target = (c_idx, c_val)
         self.task.putclist(c_idx, c_val)
 
-        # TODO: 添加优化的方向的选项
-        self.task.putobjsense(mosek.objsense.minimize)
+        if self.direction == "min":
+            self.task.putobjsense(mosek.objsense.minimize)
+        else:
+            self.task.putobjsense(mosek.objsense.maximize)
 
     @property
     def psd(self):

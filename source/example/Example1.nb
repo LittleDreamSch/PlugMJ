@@ -1,0 +1,345 @@
+(* Content-type: application/vnd.wolfram.mathematica *)
+
+(*** Wolfram Notebook File ***)
+(* http://www.wolfram.com/nb *)
+
+(* CreatedBy='Mathematica 14.0' *)
+
+(*CacheID: 234*)
+(* Internal cache information:
+NotebookFileLineBreakTest
+NotebookFileLineBreakTest
+NotebookDataPosition[       158,          7]
+NotebookDataLength[     11848,        337]
+NotebookOptionsPosition[      8658,        281]
+NotebookOutlinePosition[      9065,        297]
+CellTagsIndexPosition[      9022,        294]
+WindowFrame->Normal*)
+
+(* Beginning of Notebook Content *)
+Notebook[{
+
+Cell[CellGroupData[{
+Cell["Example 1 :: SDP Without Parameter", "Title",ExpressionUUID->"a3570f3e-98d5-4260-abb4-3b9567ec5ab1"],
+
+Cell[TextData[{
+ "Minimize : 2 ",
+ Cell[BoxData[
+  FormBox[
+   SubscriptBox["x", "2"], TraditionalForm]],
+  FormatType->TraditionalForm,ExpressionUUID->
+  "da7d75eb-f5f5-4737-afae-402279c804f6"],
+ " + 3 ",
+ Cell[BoxData[
+  FormBox[
+   SubscriptBox["x", "4"], TraditionalForm]],
+  FormatType->TraditionalForm,ExpressionUUID->
+  "5d87098e-c572-4ad4-8bd6-9900ab5e47a4"],
+ "\n              s.t: ",
+ Cell[BoxData[
+  FormBox[
+   RowBox[{"(", "\[NoBreak]", GridBox[{
+      {
+       RowBox[{
+        SubscriptBox["x", "2"], "-", 
+        SubscriptBox["x", "4"], "+", "1"}], "1"},
+      {"1", 
+       RowBox[{
+        FractionBox[
+         SubscriptBox["x", "2"], "4"], "+", 
+        SubscriptBox["x", "4"]}]}
+     },
+     GridBoxAlignment->{"Columns" -> {{Center}}, "Rows" -> {{Baseline}}},
+     GridBoxSpacings->{"Columns" -> {
+         Offset[0.27999999999999997`], {
+          Offset[0.7]}, 
+         Offset[0.27999999999999997`]}, "Rows" -> {
+         Offset[0.2], {
+          Offset[0.4]}, 
+         Offset[0.2]}}], "\[NoBreak]", ")"}], TraditionalForm]], "Output",
+  ExpressionUUID->"edc08d23-be8d-442d-a56c-563b6b5014ae"],
+ " \[VectorGreaterEqual] 0"
+}], "Text",ExpressionUUID->"53cbc757-0a93-46da-9c5a-344a943f43a2"],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{"<<", "ToCVXPY`"}]], "Input",
+ CellLabel->"In[1]:=",ExpressionUUID->"af11b3c0-d810-4b94-950e-28c27f5266a1"],
+
+Cell[CellGroupData[{
+
+Cell[BoxData["\<\"ToCVXPY beta 1.0.0\"\>"], "Print",
+ CellLabel->
+  "\:6b63\:5728\:8ba1\:7b97In[1]:=",ExpressionUUID->"0ea1091b-7c52-4bce-ac38-\
+07e178ae9123"],
+
+Cell[BoxData["\<\"------------------\"\>"], "Print",
+ CellLabel->
+  "\:6b63\:5728\:8ba1\:7b97In[1]:=",ExpressionUUID->"85f7954a-7a3a-40ae-9314-\
+c08f334f527b"],
+
+Cell[BoxData["\<\"Use GenerateTask[target, allVars, sdpMatrix, loopEquations, \
+para, lambda, eps]\"\>"], "Print",
+ CellLabel->
+  "\:6b63\:5728\:8ba1\:7b97In[1]:=",ExpressionUUID->"ca0d5749-cdb9-4483-addb-\
+552d6d048407"],
+
+Cell[BoxData["\<\"to create Task.json in order to transport the SDP question \
+into CVXPY\"\>"], "Print",
+ CellLabel->
+  "\:6b63\:5728\:8ba1\:7b97In[1]:=",ExpressionUUID->"32376fff-0a48-48f1-bb15-\
+39ee151bbebd"],
+
+Cell[BoxData["\<\"Parameter: \"\>"], "Print",
+ CellLabel->
+  "\:6b63\:5728\:8ba1\:7b97In[1]:=",ExpressionUUID->"9dbc1f9e-9154-49e6-9c06-\
+64b2166290c5"],
+
+Cell[BoxData["\<\"  target: The coefficients of the target function.\"\>"], \
+"Print",
+ CellLabel->
+  "\:6b63\:5728\:8ba1\:7b97In[1]:=",ExpressionUUID->"eeca99c3-9f8d-482a-89dd-\
+09fb191175bd"],
+
+Cell[BoxData["\<\"          {1, 0, 2} will give allVars[1] + 2 allVars[3] as \
+target.\"\>"], "Print",
+ CellLabel->
+  "\:6b63\:5728\:8ba1\:7b97In[1]:=",ExpressionUUID->"4011acc7-e018-48cf-8209-\
+5d1346c5582d"],
+
+Cell[BoxData["\<\"  allVars: All the variables shown in this SDP problem. \
+\"\>"], "Print",
+ CellLabel->
+  "\:6b63\:5728\:8ba1\:7b97In[1]:=",ExpressionUUID->"d7bd6817-47a4-44b1-96fa-\
+0e5e9425b5a0"],
+
+Cell[BoxData["\<\"  sdpMatrix: SDP Matrix as constrains. \"\>"], "Print",
+ CellLabel->
+  "\:6b63\:5728\:8ba1\:7b97In[1]:=",ExpressionUUID->"c95cf1aa-6132-44a6-9c60-\
+bf460636ad66"],
+
+Cell[BoxData["\<\"  loopEquations: Equations constrains. Can include a \
+parameter.\"\>"], "Print",
+ CellLabel->
+  "\:6b63\:5728\:8ba1\:7b97In[1]:=",ExpressionUUID->"f958bcd9-5107-47bb-8c5c-\
+41cd45dcc5ba"],
+
+Cell[BoxData["\<\"  para: The parameter shown in loopEquations. \"\>"], \
+"Print",
+ CellLabel->
+  "\:6b63\:5728\:8ba1\:7b97In[1]:=",ExpressionUUID->"2a959658-b596-46e8-babe-\
+4f0f9c462723"],
+
+Cell[BoxData["\<\"  lambda: The discrete values of para. \"\>"], "Print",
+ CellLabel->
+  "\:6b63\:5728\:8ba1\:7b97In[1]:=",ExpressionUUID->"b827b9a7-f5f0-48af-801b-\
+c388d401765f"],
+
+Cell[BoxData["\<\"  eps: The threshold of the SDP algorithm. It must be in \
+the interval [\\!\\(\\*SuperscriptBox[\\(10\\), \\(-9\\)]\\), \
+\\!\\(\\*SuperscriptBox[\\(10\\), \\(-3\\)]\\)]\"\>"], "Print",
+ CellLabel->
+  "\:6b63\:5728\:8ba1\:7b97In[1]:=",ExpressionUUID->"4681613b-da5e-4b46-b19e-\
+c2b6603f296f"],
+
+Cell[BoxData["\<\"------------------\"\>"], "Print",
+ CellLabel->
+  "\:6b63\:5728\:8ba1\:7b97In[1]:=",ExpressionUUID->"8e169283-06d3-4434-81fe-\
+05d942db62db"],
+
+Cell[BoxData["\<\"DREAM @ 20240603\"\>"], "Print",
+ CellLabel->
+  "\:6b63\:5728\:8ba1\:7b97In[1]:=",ExpressionUUID->"e6e09485-14ed-4009-b874-\
+46cf8e550d4e"]
+}, Open  ]]
+}, Open  ]],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"SetDirectory", "[", 
+   RowBox[{"NotebookDirectory", "[", "]"}], "]"}], ";"}]], "Input",
+ CellLabel->"In[2]:=",ExpressionUUID->"2e9c36f4-a539-4317-8fca-19bfcd49b983"],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{"corMatrix", " ", "=", " ", 
+  RowBox[{"{", 
+   RowBox[{
+    RowBox[{"{", 
+     RowBox[{
+      RowBox[{
+       SubscriptBox["x", "2"], "-", 
+       SubscriptBox["x", "4"], "+", "1"}], ",", " ", "1"}], "}"}], ",", 
+    RowBox[{"{", 
+     RowBox[{"1", ",", " ", 
+      RowBox[{
+       FractionBox[
+        SubscriptBox["x", "2"], "4"], "+", 
+       SubscriptBox["x", "4"]}]}], "}"}]}], "}"}]}]], "Input",
+ CellLabel->"In[3]:=",ExpressionUUID->"b1a7a943-1c1f-4fe6-ab0e-b6d5bb8adbaf"],
+
+Cell[BoxData[
+ RowBox[{"{", 
+  RowBox[{
+   RowBox[{"{", 
+    RowBox[{
+     RowBox[{"1", "+", 
+      SubscriptBox["x", "2"], "-", 
+      SubscriptBox["x", "4"]}], ",", "1"}], "}"}], ",", 
+   RowBox[{"{", 
+    RowBox[{"1", ",", 
+     RowBox[{
+      FractionBox[
+       SubscriptBox["x", "2"], "4"], "+", 
+      SubscriptBox["x", "4"]}]}], "}"}]}], "}"}]], "Output",
+ CellLabel->"Out[3]=",ExpressionUUID->"097fa595-4d54-4759-a811-be7511f7108f"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{"GenerateTask", "[", 
+  RowBox[{
+   RowBox[{"{", 
+    RowBox[{"2", ",", "3"}], "}"}], ",", " ", 
+   RowBox[{"{", 
+    RowBox[{
+     SubscriptBox["x", "2"], ",", 
+     SubscriptBox["x", "4"]}], "}"}], ",", 
+   RowBox[{"{", "corMatrix", "}"}], ",", " ", 
+   RowBox[{"{", "}"}], ",", " ", "\[Lambda]", ",", " ", 
+   RowBox[{"{", "}"}], ",", " ", 
+   SuperscriptBox["10", 
+    RowBox[{"-", "6"}]]}], "]"}]], "Input",
+ CellLabel->"In[17]:=",ExpressionUUID->"3796aec6-5be5-44bd-bfa2-22ba00ac5c59"],
+
+Cell[CellGroupData[{
+
+Cell[BoxData["\<\"[Matrix] Phasing Matrices.\"\>"], "Print",
+ CellLabel->
+  "\:6b63\:5728\:8ba1\:7b97In[17]:=",ExpressionUUID->"f11545c5-0604-47c5-a9aa-\
+5f5dc374c397"],
+
+Cell[BoxData["\<\"[LoopEqs] Phasing LoopEqs.\"\>"], "Print",
+ CellLabel->
+  "\:6b63\:5728\:8ba1\:7b97In[17]:=",ExpressionUUID->"6baba312-bb54-4c3e-b3b6-\
+dffa1988c85b"],
+
+Cell[BoxData["\<\"Exporting...\"\>"], "Print",
+ CellLabel->
+  "\:6b63\:5728\:8ba1\:7b97In[17]:=",ExpressionUUID->"6f46edcd-c5e8-4d48-961f-\
+ea0382c816c7"],
+
+Cell[BoxData["\<\"The Task.json has been created.\"\>"], "Print",
+ CellLabel->
+  "\:6b63\:5728\:8ba1\:7b97In[17]:=",ExpressionUUID->"a94fbe46-e2d4-4298-b3e4-\
+23b0aa18da45"],
+
+Cell[BoxData["\<\"Variables in allVars have been renamed. \"\>"], "Print",
+ CellLabel->
+  "\:6b63\:5728\:8ba1\:7b97In[17]:=",ExpressionUUID->"51b9ace8-6bbd-4848-9bc4-\
+d0d496d57820"]
+}, Open  ]]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{"SemidefiniteOptimization", "[", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"2", 
+     SubscriptBox["x", "2"]}], "+", 
+    RowBox[{"3", 
+     SubscriptBox["x", "4"]}]}], ",", 
+   RowBox[{"VectorGreaterEqual", "[", 
+    RowBox[{
+     RowBox[{"{", 
+      RowBox[{"corMatrix", ",", " ", "0"}], "}"}], ",", " ", 
+     RowBox[{"{", 
+      RowBox[{"\"\<SemidefiniteCone\>\"", ",", " ", "2"}], "}"}]}], "]"}], 
+   ",", 
+   RowBox[{"{", 
+    RowBox[{
+     SubscriptBox["x", "2"], ",", 
+     SubscriptBox["x", "4"]}], "}"}]}], " ", "]"}]], "Input",
+ CellLabel->"In[5]:=",ExpressionUUID->"2298ddcb-c036-4628-b25a-c037938a23b6"],
+
+Cell[BoxData[
+ RowBox[{"{", 
+  RowBox[{
+   RowBox[{
+    SubscriptBox["x", "2"], "\[Rule]", "1.1999999789373972`"}], ",", 
+   RowBox[{
+    SubscriptBox["x", "4"], "\[Rule]", "0.19999998995074922`"}]}], 
+  "}"}]], "Output",
+ CellLabel->"Out[5]=",ExpressionUUID->"e124d6d3-26f2-4532-9b75-6ccd45f78243"]
+}, Open  ]]
+}, Open  ]]
+},
+WindowSize->{900, 1097},
+WindowMargins->{{0, Automatic}, {Automatic, 271}},
+FrontEndVersion->"14.0 for Mac OS X ARM (64-bit) (2023\:5e7412\:670812\:65e5)",
+StyleDefinitions->"Default.nb",
+ExpressionUUID->"d4896599-5f2a-42a6-9d2b-27f528aa3957"
+]
+(* End of Notebook Content *)
+
+(* Internal cache information *)
+(*CellTagsOutline
+CellTagsIndex->{}
+*)
+(*CellTagsIndex
+CellTagsIndex->{}
+*)
+(*NotebookFileOutline
+Notebook[{
+Cell[CellGroupData[{
+Cell[580, 22, 106, 0, 98, "Title",ExpressionUUID->"a3570f3e-98d5-4260-abb4-3b9567ec5ab1"],
+Cell[689, 24, 1216, 37, 79, "Text",ExpressionUUID->"53cbc757-0a93-46da-9c5a-344a943f43a2"],
+Cell[CellGroupData[{
+Cell[1930, 65, 130, 2, 30, "Input",ExpressionUUID->"af11b3c0-d810-4b94-950e-28c27f5266a1"],
+Cell[CellGroupData[{
+Cell[2085, 71, 159, 3, 24, "Print",ExpressionUUID->"0ea1091b-7c52-4bce-ac38-07e178ae9123"],
+Cell[2247, 76, 159, 3, 24, "Print",ExpressionUUID->"85f7954a-7a3a-40ae-9314-c08f334f527b"],
+Cell[2409, 81, 221, 4, 24, "Print",ExpressionUUID->"ca0d5749-cdb9-4483-addb-552d6d048407"],
+Cell[2633, 87, 212, 4, 24, "Print",ExpressionUUID->"32376fff-0a48-48f1-bb15-39ee151bbebd"],
+Cell[2848, 93, 152, 3, 24, "Print",ExpressionUUID->"9dbc1f9e-9154-49e6-9c06-64b2166290c5"],
+Cell[3003, 98, 193, 4, 24, "Print",ExpressionUUID->"eeca99c3-9f8d-482a-89dd-09fb191175bd"],
+Cell[3199, 104, 209, 4, 24, "Print",ExpressionUUID->"4011acc7-e018-48cf-8209-5d1346c5582d"],
+Cell[3411, 110, 199, 4, 24, "Print",ExpressionUUID->"d7bd6817-47a4-44b1-96fa-0e5e9425b5a0"],
+Cell[3613, 116, 180, 3, 24, "Print",ExpressionUUID->"c95cf1aa-6132-44a6-9c60-bf460636ad66"],
+Cell[3796, 121, 206, 4, 24, "Print",ExpressionUUID->"f958bcd9-5107-47bb-8c5c-41cd45dcc5ba"],
+Cell[4005, 127, 189, 4, 24, "Print",ExpressionUUID->"2a959658-b596-46e8-babe-4f0f9c462723"],
+Cell[4197, 133, 180, 3, 24, "Print",ExpressionUUID->"b827b9a7-f5f0-48af-801b-c388d401765f"],
+Cell[4380, 138, 311, 5, 25, "Print",ExpressionUUID->"4681613b-da5e-4b46-b19e-c2b6603f296f"],
+Cell[4694, 145, 159, 3, 24, "Print",ExpressionUUID->"8e169283-06d3-4434-81fe-05d942db62db"],
+Cell[4856, 150, 157, 3, 24, "Print",ExpressionUUID->"e6e09485-14ed-4009-b874-46cf8e550d4e"]
+}, Open  ]]
+}, Open  ]],
+Cell[5040, 157, 201, 4, 44, "Input",ExpressionUUID->"2e9c36f4-a539-4317-8fca-19bfcd49b983"],
+Cell[CellGroupData[{
+Cell[5266, 165, 503, 15, 45, "Input",ExpressionUUID->"b1a7a943-1c1f-4fe6-ab0e-b6d5bb8adbaf"],
+Cell[5772, 182, 441, 14, 47, "Output",ExpressionUUID->"097fa595-4d54-4759-a811-be7511f7108f"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[6250, 201, 514, 14, 33, "Input",ExpressionUUID->"3796aec6-5be5-44bd-bfa2-22ba00ac5c59"],
+Cell[CellGroupData[{
+Cell[6789, 219, 168, 3, 24, "Print",ExpressionUUID->"f11545c5-0604-47c5-a9aa-5f5dc374c397"],
+Cell[6960, 224, 168, 3, 24, "Print",ExpressionUUID->"6baba312-bb54-4c3e-b3b6-dffa1988c85b"],
+Cell[7131, 229, 154, 3, 24, "Print",ExpressionUUID->"6f46edcd-c5e8-4d48-961f-ea0382c816c7"],
+Cell[7288, 234, 173, 3, 24, "Print",ExpressionUUID->"a94fbe46-e2d4-4298-b3e4-23b0aa18da45"],
+Cell[7464, 239, 182, 3, 24, "Print",ExpressionUUID->"51b9ace8-6bbd-4848-9bc4-d0d496d57820"]
+}, Open  ]]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[7695, 248, 633, 19, 67, "Input",ExpressionUUID->"2298ddcb-c036-4628-b25a-c037938a23b6"],
+Cell[8331, 269, 299, 8, 34, "Output",ExpressionUUID->"e124d6d3-26f2-4532-9b75-6ccd45f78243"]
+}, Open  ]]
+}, Open  ]]
+}
+]
+*)
+

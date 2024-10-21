@@ -14,6 +14,7 @@ class Interface:
         task_loader: TaskLoader,
         logger: Log,
         data_saver: DataSaver,
+        direction: str,
         **MOSEK_OPTIONS,
     ):
         """
@@ -23,13 +24,19 @@ class Interface:
             task_loader (TaskLoader): 任务加载器
             logger (Log): 日志器
             data_saver (DataSaver): 数据保存器
+            direction (str): 优化方向
             **MOSEK_OPTIONS: MOSEK 参数
         """
         self.task_loader = task_loader
         self.logger = logger
         self.data_saver = data_saver
-        self.MOSEK_OPTIONS = MOSEK_OPTIONS
+        if direction not in ["min", "max"]:
+            logger.error(f"Invalid direction: {direction}. Must be either min or max.")
+            exit(1)
+        else:
+            self.direction = direction
 
+        self.MOSEK_OPTIONS = MOSEK_OPTIONS
         self._psd = []
 
     @abstractmethod
