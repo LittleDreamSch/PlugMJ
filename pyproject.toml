@@ -1,6 +1,6 @@
 [project]
 name = "PlugMJ"
-version = "1.1.0"
+version = "1.1.1"
 description = "从 Mathematica 导出表示 SDP 问题的 Json 文件，python 端读取 Json 文件，并使用 Mosek 求解 SDP 问题"
 authors = [{name="Dream", email="449185666@qq.com"}]
 readme = "README.md"
@@ -9,7 +9,7 @@ dependencies = [
     "cvxpy>=1.5.3",
     "loguru>=0.7.2",
     "mosek>=10.2.5",
-    "numpy>=2.1.2",
+    "numpy<2.0",
     "pandas>=2.2.3",
 ]
 

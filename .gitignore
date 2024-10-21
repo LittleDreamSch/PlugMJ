@@ -4,3 +4,6 @@ src/PlugMJ.egg-info
 src/PlugMJ.egg-info
 src/PlugMJ.egg-info
 src/__pycache__
+**/*.csv
+src/output.csv
+task

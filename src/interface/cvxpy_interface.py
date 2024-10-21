@@ -2,6 +2,12 @@
 cvxpy 接口
 """
 
+# TODO: 多线程
+# 参考 https://www.cvxpy.org/tutorial/intro/index.html#changing-the-problem 末尾
+
+# TODO: get_problem_data 获取 mosek 标准问题
+# 参考 https://www.cvxpy.org/tutorial/advanced/index.html
+
 import cvxpy as cp
 import numpy as np
 from interface.interface import Interface
@@ -12,7 +18,12 @@ from utils.log import Log
 
 class CvxpyInterface(Interface):
     def __init__(
-        self, task_loader: TaskLoader, log: Log, data_saver: DataSaver, **MOSEK_OPTIONS
+        self,
+        task_loader: TaskLoader,
+        log: Log,
+        data_saver: DataSaver,
+        direction: str,
+        **MOSEK_OPTIONS,
     ):
         """
         初始化 cvxpy 接口
@@ -21,15 +32,14 @@ class CvxpyInterface(Interface):
             task_loader (TaskLoader): 任务加载器
             logger (Log): 日志器
             data_saver (DataSaver): 数据保存器
+            direction (str): 优化方向
             **MOSEK_OPTIONS: MOSEK 参数
         """
-        super().__init__(task_loader, log, data_saver)
+        super().__init__(task_loader, log, data_saver, direction, **MOSEK_OPTIONS)
         log.info("use cvxpy interface")
 
         self.init_cvxpy()
         self.init_problem()
-
-        self.MOSEK_OPTIONS = MOSEK_OPTIONS
 
     def init_cvxpy(self):
         """
@@ -61,7 +71,10 @@ class CvxpyInterface(Interface):
     @target.setter
     def target(self, c):
         t = cp.sum([self.x[c[0][_]][0] * c[1][_] for _ in range(len(c[0]))])
-        self._target = cp.Minimize(t)
+        if self.direction == "min":
+            self._target = cp.Minimize(t)
+        else:
+            self._target = cp.Maximize(t)
 
     @property
     def lc(self):
@@ -149,7 +162,12 @@ class CvxpyInterface(Interface):
             # 更新 g 值
             self.para.value = g_val
             # 优化
-            self.problem.solve(solver=cp.MOSEK, verbose=True, mosek_params=msk_params)
+            self.problem.solve(
+                solver=cp.MOSEK,
+                verbose=True,
+                canon_backend=cp.SCIPY_CANON_BACKEND,
+                mosek_params=msk_params,
+            )
 
             # 打印时间
             self.logger.info(f"Compilation  Time: {self.problem.compilation_time}")
@@ -176,9 +194,3 @@ class CvxpyInterface(Interface):
                     f"[g = {g_val}] STATUS: INFEASIBLE. Result won't be stored."
                 )
         self.data_saver.save()
-
-    # TODO: 多线程
-    # 参考 https://www.cvxpy.org/tutorial/intro/index.html#changing-the-problem 末尾
-
-    # TODO: get_problem_data 获取 mosek 标准问题
-    # 参考 https://www.cvxpy.org/tutorial/advanced/index.html

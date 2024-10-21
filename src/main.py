@@ -7,7 +7,7 @@ from data.data_saver import DataSaver
 from utils.log import Log
 
 cow = """ __________________________ 
-< PlugMJ Beta 1.1.0 @Dream >
+< PlugMJ Beta 1.1.1 @Dream >
  -------------------------- 
         \\   ^__^
          \\  (OO)\\_______
@@ -21,9 +21,9 @@ desc = (
     + """Execute SDP Json exported from mathematica. 
 
 Example: 
-    PlugMJ -t Task.json -o output.csv -n NAME
-                : Run Task.json and save the result as output.csv 
-                  with task name = NAME by using cvxpy as interface
+    PlugMJ -t Task.json -o output.csv -d min
+                : Run Task.json and minimize the objective and save the result 
+                  as output.csv by using cvxpy as default interface
 """
 )
 
@@ -70,7 +70,16 @@ def parser_handler():
         "-o", "--output", default="output.csv", help="Path of the output file."
     )
     parser.add_argument(
-        "-i", "--interface", default="cvxpy", help="Interface to use. cvxpy as default."
+        "-d",
+        "--direction",
+        default="min",
+        help="Direction of the task. min or max. minimize as default. ",
+    )
+    parser.add_argument(
+        "-i",
+        "--interface",
+        default="cvxpy",
+        help="Interface to use, cvxpy or original. cvxpy as default.",
     )
     parser.add_argument("-n", "--name", default="SDP_TASK", help="Name of the task.")
     parser.add_argument("-l", "--log", default="", help="Path of the log file.")
@@ -96,9 +105,9 @@ def build_solver(args):
     task = None
 
     if args.interface == "original":  # 原始接口
-        task = MosekInterface(data, logger, saver, **MOSEK_OPTIONS)
+        task = MosekInterface(data, logger, saver, args.direction, **MOSEK_OPTIONS)
     elif args.interface == "cvxpy":  # cvxpy 接口
-        task = CvxpyInterface(data, logger, saver, **MOSEK_OPTIONS)
+        task = CvxpyInterface(data, logger, saver, args.direction, **MOSEK_OPTIONS)
 
     return task, logger
 
