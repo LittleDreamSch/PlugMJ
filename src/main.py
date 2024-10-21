@@ -7,7 +7,7 @@ from data.data_saver import DataSaver
 from utils.log import Log
 
 cow = """ __________________________ 
-< PlugMJ Beta 1.2.1 @Dream >
+< PlugMJ Beta 1.2.2 @Dream >
  -------------------------- 
         \\   ^__^
          \\  (OO)\\_______

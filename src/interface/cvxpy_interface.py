@@ -9,6 +9,7 @@ cvxpy 接口
 # 参考 https://www.cvxpy.org/tutorial/advanced/index.html
 
 import cvxpy as cp
+from cvxpy.reductions.solvers import solver
 import numpy as np
 from scipy.sparse import coo_matrix
 from interface.interface import Interface
@@ -41,6 +42,10 @@ class CvxpyInterface(Interface):
 
         self.init_cvxpy()
         self.init_problem()
+
+        # 总时间
+        self.total_time = 0.0
+        self.total_complie_time = 0.0
 
     def init_cvxpy(self):
         """
@@ -233,8 +238,15 @@ class CvxpyInterface(Interface):
             )
 
             # 打印时间
-            self.logger.info(f"Compilation  Time: {self.problem.compilation_time}")
-            self.logger.info(f"Optimization Time: {self.problem._solve_time}")
+            solve_time = self.problem._solve_time
+            compile_time = self.problem.compilation_time
+            self.logger.info(f"Compilation  Time: {compile_time}")
+            self.logger.info(f"Optimization Time: {solve_time}")
+
+            if solve_time is not None:
+                self.total_time += solve_time
+            if compile_time is not None:
+                self.total_complie_time += compile_time
 
             # 获得结果
             status = self.problem.status
@@ -256,4 +268,14 @@ class CvxpyInterface(Interface):
                 self.logger.error(
                     f"[g = {g_val}] STATUS: INFEASIBLE. Result won't be stored."
                 )
+
+        # 输出总时间
+        self.logger.info("*************************")
+        self.logger.info(f"- Total Optimization Time : {self.total_time:.2f} s")
+        self.logger.info(f"- Total Compilation  Time : {self.total_complie_time:.2f} s")
+        self.logger.info(
+            f"- Total Time              : {self.total_complie_time + self.total_time:.2f} s"
+        )
+
+        # 输出结果到文件
         self.data_saver.save()
