@@ -6,3 +6,7 @@ src/__pycache__
 **/*.csv
 src/output.csv
 task
+.gitignore
+**/.DS_Store
+**/.python-version
+uv.lock

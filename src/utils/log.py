@@ -7,13 +7,15 @@ import sys
 
 
 class Log:
-    def __init__(self, log_path=""):
+    def __init__(self, disable, log_path=""):
         """
         初始化日志
 
         Args:
+            disable: 是否禁用日志
             log_path: 日志文件路径，为空则不保存
         """
+        self.disable = disable
         self.log_path = log_path
         self.logger = self.init_log()
         self.add_level()
@@ -41,13 +43,14 @@ class Log:
         logger.remove()
 
         # 设置命令行输出格式
-        logger.add(
-            sys.stdout,
-            format="<green>{time:YYYY-MM-DD @ HH:mm:ss}</green> | <level>{level.name:<7}</level> | {message}",
-            level="DEBUG",
-            # enqueue=True,
-            backtrace=True,
-        )
+        if not self.disable:
+            logger.add(
+                sys.stdout,
+                format="<green>{time:YYYY-MM-DD @ HH:mm:ss}</green> | <level>{level.name:<7}</level> | {message}",
+                level="DEBUG",
+                # enqueue=True,
+                backtrace=True,
+            )
 
         # 设置文件输出格式
         if self.log_path != "":

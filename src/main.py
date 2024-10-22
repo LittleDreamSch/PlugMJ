@@ -97,7 +97,7 @@ def build_solver(args):
     # 配置 Mosek 参数
     MOSEK_OPTIONS = generate_mosek_options(args)
 
-    logger = Log(args.log)
+    logger = Log(False, args.log)
     print_cow(logger)
 
     saver = DataSaver(args.output, logger)

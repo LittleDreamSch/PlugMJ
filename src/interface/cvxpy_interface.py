@@ -213,7 +213,7 @@ class CvxpyInterface(Interface):
     def optimize(self):
         # NOTE: cvxpy 的 eps 参数不可信，其会设置 infeasible 的阈值设置为 eps，导致 mosek 过早结束
         # 精度讨论：https://github.com/cvxpy/cvxpy/issues/434
-        # 尽管 cvxpy 回汇报 OPTIMAL 的状态和解，但是可能会有大条件破坏
+        # 尽管 cvxpy 汇报 OPTIMAL 的状态和解，但是可能会有大条件破坏
 
         # 构造 Mosek 参数
         msk_params = {
@@ -236,46 +236,63 @@ class CvxpyInterface(Interface):
                 canon_backend=cp.SCIPY_CANON_BACKEND,
                 mosek_params=msk_params,
             )
-
-            # 打印时间
-            solve_time = self.problem._solve_time
-            compile_time = self.problem.compilation_time
-            self.logger.info(f"Compilation  Time: {compile_time}")
-            self.logger.info(f"Optimization Time: {solve_time}")
-
-            if solve_time is not None:
-                self.total_time += solve_time
-            if compile_time is not None:
-                self.total_complie_time += compile_time
-
             # 获得结果
-            status = self.problem.status
-            if status == cp.OPTIMAL or status == cp.OPTIMAL_INACCURATE:
-                if status == cp.OPTIMAL:
-                    self.logger.success(f"[g = {g_val}] STATUS: OPTIMAL")
-                else:
-                    self.logger.warning(f"[g = {g_val}] STATUS: OPTIMAL_INACCURATE")
-                # 获取结果
-                obj = self.problem.value
-                sol = [_[0] for _ in self.x.value]
-                self.logger.info(f"Objective value: {obj}")
-                # 储存结果
-                # g_val, obj, sol
-                self.data_saver.append(
-                    np.concatenate((np.array([g_val, obj]), np.array(sol)))
-                )
-            elif status == cp.INFEASIBLE:
-                self.logger.error(
-                    f"[g = {g_val}] STATUS: INFEASIBLE. Result won't be stored."
-                )
+            self.status_handle(g_val, self.problem.status)
+            # 打印时间
+            self.update_step_time()
 
         # 输出总时间
-        self.logger.info("*************************")
-        self.logger.info(f"- Total Optimization Time : {self.total_time:.2f} s")
-        self.logger.info(f"- Total Compilation  Time : {self.total_complie_time:.2f} s")
-        self.logger.info(
-            f"- Total Time              : {self.total_complie_time + self.total_time:.2f} s"
-        )
+        self.print_total_time()
 
         # 输出结果到文件
         self.data_saver.save()
+
+    def status_handle(self, g_val, status):
+        """
+        处理状态
+
+        Args:
+            g_val (float): g 值
+            status (str): 状态
+        """
+        if status == cp.OPTIMAL or status == cp.OPTIMAL_INACCURATE:
+            if status == cp.OPTIMAL:
+                self.logger.success(f"[g = {g_val}] STATUS: OPTIMAL")
+            else:
+                self.logger.warning(f"[g = {g_val}] STATUS: OPTIMAL_INACCURATE")
+            # 获取结果
+            obj = self.problem.value
+            sol = [_[0] for _ in self.x.value]
+            self.logger.info(f"Objective value  : {obj}")
+            # 储存结果
+            # g_val, obj, sol
+            self.data_saver.append(
+                np.concatenate((np.array([g_val, obj]), np.array(sol)))
+            )
+        elif status == cp.INFEASIBLE:
+            self.logger.error(
+                f"[g = {g_val}] STATUS: INFEASIBLE. Result won't be stored."
+            )
+        else:
+            self.logger.error(f"[g = {g_val}] STATUS: UNKNOW. Result won't be stored.")
+
+    def update_step_time(self):
+        """更新并打印步长时间"""
+        solve_time = self.problem._solve_time
+        compile_time = self.problem.compilation_time
+        self.logger.info(f"Compilation  Time: {compile_time:.3f} s")
+        self.logger.info(f"Optimization Time: {solve_time:.3f} s")
+
+        if solve_time is not None:
+            self.total_time += solve_time
+        if compile_time is not None:
+            self.total_complie_time += compile_time
+
+    def print_total_time(self):
+        """打印总用时"""
+        self.logger.info("*************************")
+        self.logger.info(f"- Total Optimization Time : {self.total_time:.3f} s")
+        self.logger.info(f"- Total Compilation  Time : {self.total_complie_time:.3f} s")
+        self.logger.info(
+            f"- Total Time              : {self.total_complie_time + self.total_time:.3f} s"
+        )
