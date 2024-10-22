@@ -25,7 +25,7 @@ class CvxpyInterface(Interface):
         log: Log,
         data_saver: DataSaver,
         direction: str,
-        **MOSEK_OPTIONS,
+        **solver_options,
     ):
         """
         初始化 cvxpy 接口
@@ -35,17 +35,21 @@ class CvxpyInterface(Interface):
             logger (Log): 日志器
             data_saver (DataSaver): 数据保存器
             direction (str): 优化方向
-            **MOSEK_OPTIONS: MOSEK 参数
+            **solver_options: MOSEK 参数
         """
-        super().__init__(task_loader, log, data_saver, direction, **MOSEK_OPTIONS)
+        super().__init__(task_loader, log, data_saver, direction, **solver_options)
         log.info("use cvxpy interface")
 
+        # 初始化 cvxpy
         self.init_cvxpy()
+        # 初始化问题
         self.init_problem()
-
-        # 总时间
+        # 时间记录
         self.total_time = 0.0
         self.total_complie_time = 0.0
+
+        # 处理参数
+        self.solver_options_handler(solver_options)
 
     def init_cvxpy(self):
         """
@@ -62,6 +66,8 @@ class CvxpyInterface(Interface):
         self.psd = self.task_loader.psd
         # 线性不等式
         self.ineqs = -1, 1
+        # 精度
+        self.eps = self.task_loader.eps
 
     def init_problem(self):
         """
@@ -109,6 +115,40 @@ class CvxpyInterface(Interface):
             afe = cp.vec_to_upper_tri(f @ self.x + cons)
             self._psd.append(afe >> 0)
 
+    @staticmethod
+    def vec(mat):
+        """
+        向量化矩阵
+
+        Args:
+            mat (scipy.sparse.coo_matrix): 上三角稀疏矩阵
+
+        Returns:
+            row (list): 行索引
+            val (list): 值
+
+        对角线上的元素会 /2，以满足 cvxpy 的格式
+        """
+        t_row = mat.row
+        t_col = mat.col
+        t_val = mat.data
+        dim = mat.shape[0]
+
+        row, val = [], []
+        for i in range(len(t_row)):
+            # 值
+            if t_row[i] == t_col[i]:
+                val.append(
+                    t_val[i] * 0.5
+                )  # NOTE: CVXPY 不要求 X 是对称的以要求其为 PSD，X >> 0 会要求 X + X.T >> 0，对角线元素需要 / 2
+            else:
+                val.append(t_val[i])
+            # 索引
+            row.append(
+                int(0.5 * (2 * dim - t_row[i] + 1) * t_row[i] + t_col[i] - t_row[i])
+            )
+        return row, val
+
     def vectorize_psd(self, cons, f, var_idx):
         """
         psd 约束向量化
@@ -122,45 +162,11 @@ class CvxpyInterface(Interface):
             F (np.array, d*(d+1)/2 x n_var): 向量化后的系数矩阵
             cons (np.array, d*(d+1)/2 x 1): 向量化后的标量矩阵
         """
-
-        def vec(mat):
-            """
-            向量化矩阵
-
-            Args:
-                mat (scipy.sparse.coo_matrix): 上三角稀疏矩阵
-
-            Returns:
-                row (list): 行索引
-                val (list): 值
-
-            对角线上的元素会 /2，以满足 cvxpy 的格式
-            """
-            t_row = mat.row
-            t_col = mat.col
-            t_val = mat.data
-            dim = mat.shape[0]
-
-            row, val = [], []
-            for i in range(len(t_row)):
-                # 值
-                if t_row[i] == t_col[i]:
-                    val.append(
-                        t_val[i] * 0.5
-                    )  # NOTE: CVXPY 不要求 X 是对称的以要求其为 PSD，X >> 0 会要求 X + X.T >> 0，对角线元素需要 / 2
-                else:
-                    val.append(t_val[i])
-                # 索引
-                row.append(
-                    int(0.5 * (2 * dim - t_row[i] + 1) * t_row[i] + t_col[i] - t_row[i])
-                )
-            return row, val
-
         dim = cons.shape[0]
         # 系数矩阵
         f_row, f_val, f_col = [], [], []
         for i in range(len(f)):
-            row, val = vec(f[i])
+            row, val = self.vec(f[i])
             f_row += row
             f_col += [var_idx[i]] * len(row)
             f_val += val
@@ -169,7 +175,7 @@ class CvxpyInterface(Interface):
             shape=(dim * (dim + 1) // 2, self.task_loader.n_var),
         )
         # 标量矩阵
-        cons_row, cons_val = vec(cons)
+        cons_row, cons_val = self.vec(cons)
         cons = coo_matrix(
             (cons_val, (cons_row, np.zeros(len(cons_row)))),
             shape=(dim * (dim + 1) // 2, 1),
@@ -237,7 +243,7 @@ class CvxpyInterface(Interface):
                 mosek_params=msk_params,
             )
             # 获得结果
-            self.status_handle(g_val, self.problem.status)
+            self.status_handler(g_val, self.problem.status)
             # 打印时间
             self.update_step_time()
 
@@ -247,7 +253,7 @@ class CvxpyInterface(Interface):
         # 输出结果到文件
         self.data_saver.save()
 
-    def status_handle(self, g_val, status):
+    def status_handler(self, g_val, status):
         """
         处理状态
 

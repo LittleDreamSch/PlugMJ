@@ -15,7 +15,7 @@ class Interface:
         logger: Log,
         data_saver: DataSaver,
         direction: str,
-        **MOSEK_OPTIONS,
+        **solver_options,
     ):
         """
         初始化MOSEK接口
@@ -25,19 +25,37 @@ class Interface:
             logger (Log): 日志器
             data_saver (DataSaver): 数据保存器
             direction (str): 优化方向
-            **MOSEK_OPTIONS: MOSEK 参数
+            **solver_options: 求解器参数
         """
         self.task_loader = task_loader
         self.logger = logger
         self.data_saver = data_saver
+        self.solver_options = solver_options
         if direction not in ["min", "max"]:
             logger.error(f"Invalid direction: {direction}. Must be either min or max.")
             exit(1)
         else:
             self.direction = direction
 
-        self.MOSEK_OPTIONS = MOSEK_OPTIONS
         self._psd = []
+
+    def solver_options_handler(self, solver_options: dict):
+        """
+        处理 solver_options
+
+        Args:
+            solver_options (dict): 优化器参数
+        """
+        # MOSEK 参数
+        msk_options = solver_options.pop("MOSEK_OPTIONS", None)
+        if msk_options is not None:
+            self.MOSEK_OPTIONS = msk_options
+
+        # 精度
+        eps_opt = solver_options.pop("eps", None)
+        if eps_opt is not None:
+            self.logger.info(f"Reset eps to {eps_opt}")
+            self.eps = eps_opt
 
     @abstractmethod
     def optimize(self):
@@ -52,7 +70,7 @@ class Interface:
         """
         目标函数
         """
-        if self._target is None:
+        if not hasattr(self, "_target"):
             self._target = ([], [])
         return self._target
 
@@ -75,7 +93,7 @@ class Interface:
         """
         获取 PSD 约束
         """
-        if self._psd is None:
+        if not hasattr(self, "_psd"):
             return []
         return self._psd
 
@@ -103,7 +121,7 @@ class Interface:
         """
         获取精度
         """
-        if hasattr(self, "_eps") == False:
+        if not hasattr(self, "_eps"):
             self._eps = 1e-6
         return self._eps
 
@@ -116,7 +134,7 @@ class Interface:
         Args:
             eps (float): 精度
         """
-        pass
+        self._eps = eps
 
     @property
     @abstractmethod
@@ -124,7 +142,7 @@ class Interface:
         """
         获取线性约束
         """
-        if hasattr(self, "_lc") == False:
+        if not hasattr(self, "_lc"):
             self._lc = []
         return self._lc
 

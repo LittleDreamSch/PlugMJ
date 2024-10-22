@@ -55,11 +55,8 @@ Variables in allVars have been renamed.
 ### `python`
 
 ```txt
-usage: PlugMJ [-h] [-t TASK] [-o OUTPUT] [-d DIRECTION] [-i INTERFACE] [-n NAME] [-l LOG]
-              [-T THREADS]
-
  __________________________ 
-< PlugMJ Beta 1.1.1 @Dream >
+< PlugMJ Beta 1.2.3 @Dream >
  -------------------------- 
         \   ^__^
          \  (OO)\_______
@@ -69,9 +66,9 @@ usage: PlugMJ [-h] [-t TASK] [-o OUTPUT] [-d DIRECTION] [-i INTERFACE] [-n NAME]
 Execute SDP Json exported from mathematica. 
 
 Example: 
-    PlugMJ -t Task.json -o output.csv
-                : Run Task.json and save the result as output.csv 
-                  by using cvxpy as default interface
+    PlugMJ -t Task.json -o output.csv -d min
+                : Run Task.json and minimize the objective and save the result 
+                  as output.csv by using cvxpy as default interface
 
 options:
   -h, --help            show this help message and exit
@@ -79,13 +76,14 @@ options:
   -o OUTPUT, --output OUTPUT
                         Path of the output file.
   -d DIRECTION, --direction DIRECTION
-                        Direction of the task. min or max. minimize as default. 
-  -i INTERFACE, --interface INTERFACE
-                        Interface to use, cvxpy or original. cvxpy as default.
-  -n NAME, --name NAME  Name of the task.
-  -l LOG, --log LOG     Path of the log file.
+                        Direction of the task. min or max. (minimize as default)
   -T THREADS, --threads THREADS
-                        Number of threads.
+                        Number of threads. (0 as default)
+  -e EPS, --eps EPS     Tolerence of the solver.
+  -i INTERFACE, --interface INTERFACE
+                        Interface to use, cvxpy or original. (cvxpy as default)
+  -l LOG, --log LOG     Save log to path of the given file.
+  -n NAME, --name NAME  Name of the task (disable in cvxpy).
 ```
 
 示例：

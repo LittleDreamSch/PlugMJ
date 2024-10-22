@@ -7,7 +7,7 @@ from data.data_saver import DataSaver
 from utils.log import Log
 
 cow = """ __________________________ 
-< PlugMJ Beta 1.2.2 @Dream >
+< PlugMJ Beta 1.2.3 @Dream >
  -------------------------- 
         \\   ^__^
          \\  (OO)\\_______
@@ -59,7 +59,7 @@ def parser_handler():
     解析命令行参数
 
     Returns:
-        parser
+        parser: 命令行参数解析器
         args: 命令行参数
     """
     parser = argparse.ArgumentParser(
@@ -73,18 +73,46 @@ def parser_handler():
         "-d",
         "--direction",
         default="min",
-        help="Direction of the task. min or max. minimize as default. ",
+        help="Direction of the task. min or max. (minimize as default)",
     )
+    parser.add_argument(
+        "-T", "--threads", default=0, help="Number of threads. (0 as default)"
+    )
+    parser.add_argument("-e", "--eps", type=float, help="Tolerence of the solver.")
     parser.add_argument(
         "-i",
         "--interface",
         default="cvxpy",
-        help="Interface to use, cvxpy or original. cvxpy as default.",
+        help="Interface to use, cvxpy or original. (cvxpy as default)",
     )
-    parser.add_argument("-n", "--name", default="SDP_TASK", help="Name of the task.")
-    parser.add_argument("-l", "--log", default="", help="Path of the log file.")
-    parser.add_argument("-T", "--threads", default=0, help="Number of threads.")
+    parser.add_argument(
+        "-l", "--log", default="", help="Save log to path of the given file."
+    )
+    parser.add_argument(
+        "-n", "--name", default="SDP_TASK", help="Name of the task (disable in cvxpy)."
+    )
     return parser, parser.parse_args()
+
+
+def build_solver_options(args):
+    """
+    构建求解器参数
+
+    Args:
+        args: 命令行参数
+
+    Returns:
+        solver_options: 字典，包含求解器参数
+    """
+    # Mosek 参数
+    MOSEK_OPTIONS = generate_mosek_options(args)
+    solver_options = {"MOSEK_OPTIONS": MOSEK_OPTIONS}
+
+    # eps
+    if args.eps is not None:
+        solver_options["eps"] = args.eps
+
+    return solver_options
 
 
 def build_solver(args):
@@ -94,8 +122,6 @@ def build_solver(args):
     Args:
         args: 命令行参数
     """
-    # 配置 Mosek 参数
-    MOSEK_OPTIONS = generate_mosek_options(args)
 
     logger = Log(False, args.log)
     print_cow(logger)
@@ -104,10 +130,12 @@ def build_solver(args):
     data = TaskLoader(args.task, logger, args.name)
     task = None
 
+    solver_options = build_solver_options(args)
+
     if args.interface == "original":  # 原始接口
-        task = MosekInterface(data, logger, saver, args.direction, **MOSEK_OPTIONS)
+        task = MosekInterface(data, logger, saver, args.direction, **solver_options)
     elif args.interface == "cvxpy":  # cvxpy 接口
-        task = CvxpyInterface(data, logger, saver, args.direction, **MOSEK_OPTIONS)
+        task = CvxpyInterface(data, logger, saver, args.direction, **solver_options)
 
     return task, logger
 
