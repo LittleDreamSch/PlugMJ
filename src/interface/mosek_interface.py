@@ -1,6 +1,10 @@
 """
-提供了与MOSEK的接口
+MOSEK OPTIMIZER INTERFACE
+
+API: https://docs.mosek.com/latest/pythonapi/intro_info.html
 """
+
+# NOTE: SDP 问题不支持自动对偶 https://docs.mosek.com/latest/pythonfusion/presolver.html#index-4
 
 import mosek
 import numpy as np
@@ -18,7 +22,7 @@ class MosekInterface(Interface):
         logger: Log,
         data_saver: DataSaver,
         direction: str,
-        **MOSEK_OPTIONS,
+        **solver_options,
     ):
         """
         初始化MOSEK接口
@@ -28,9 +32,9 @@ class MosekInterface(Interface):
             logger (Log): 日志器
             data_saver (DataSaver): 数据保存器
             direction (str): 优化方向
-            **MOSEK_OPTIONS: MOSEK 参数
+            **solver_options: MOSEK 参数
         """
-        super().__init__(task_loader, logger, data_saver, direction, **MOSEK_OPTIONS)
+        super().__init__(task_loader, logger, data_saver, direction, **solver_options)
         logger.info("use Mosek Fusion interface")
 
         # 初始化 MOSEK
@@ -43,7 +47,8 @@ class MosekInterface(Interface):
         self.task.set_Stream(mosek.streamtype.log, self.mosek_log)
 
         # 设置参数
-        self.mosek_options_handdler(**MOSEK_OPTIONS)
+        self.solver_options_handler(solver_options)
+        self.mosek_options_handler()
 
     def mosek_log(self, msg):
         """
@@ -269,15 +274,13 @@ class MosekInterface(Interface):
         )
         pass
 
-    def mosek_options_handdler(self, **MOSEK_OPTIONS):
+    def mosek_options_handler(self):
         """
         设置 MOSEK 参数
-
-        Args:
-            **MOSEK_OPTIONS: MOSEK 参数
         """
-        for key, value in MOSEK_OPTIONS.items():
-            self.task.putparam(key, str(value))
+        if hasattr(self, "MOSEK_OPTIONS"):
+            for key, value in self.MOSEK_OPTIONS.items():
+                self.task.putparam(key, str(value))
 
     @property
     def thread(self):

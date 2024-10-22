@@ -10,3 +10,4 @@ task
 **/.DS_Store
 **/.python-version
 uv.lock
+test
