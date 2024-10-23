@@ -20,14 +20,30 @@
 
 ## 使用
 
-### `Mathematica` 
+示例求解问题
+
+$$
+\begin{align*}
+\min\quad & x_2\\
+\text{s.t.}\quad& \begin{pmatrix}
+x_2 - x_4 + 1 & x_3 \\
+x_3 & \frac{x_2}{4} + x_4
+\quad& 
+\end{pmatrix}
+\succeq 0\\
+& x_3 = g * x_2 - x_4,\\
+& g \in [.1,\ .2,\ .3,\ .4,\ .5,\ .6,\ .7,\ .8,\ .9,\ 1]
+\end{align*}
+$$
+
+### Mathematica
 
 ```mathematica
 <<ToCVXPY`
-ToCVXPY beta 1.0.0
+ToCVXPY beta 1.2.3
 ------------------
-Use GenerateTask[target, allVars, sdpMatrix, loopEquations, para, lambda, eps]
-to create Task.json in order to transport the SDP question into CVXPY
+Use GenerateTask[target, allVars, sdpMatrix, loopEquations, para, lambda, eps, name]
+to create name.json in order to transport the SDP question into CVXPY
 Parameter: 
   target: The coefficients of the target function.
           {1, 0, 2} will give allVars[1] + 2 allVars[3] as target.
@@ -37,22 +53,23 @@ Parameter:
   para: The parameter shown in loopEquations. 
   lambda: The discrete values of para. 
   eps: The threshold of the SDP algorithm. It must be in the interval [10^-9, 10^-3]
+  name: Name of the task. Task will be saved to 'name.json'. Task as default.
 ------------------
-DREAM @ 20240603
+DREAM @ 20241023
 
 In[0]:= corMatrix = {{x2 - x4 + 1, x3}, {x3, x2 / 4 + x4}}
 
-In[1]:= GenerateTask[{1, 0, 0}, {x2, x3, x4},{corMatrix}, {x3 = g * x2 - x4}, g, Table[i,{i,.1, 1, .1}], 10^-6]
+In[1]:= GenerateTask[{1, 0, 0}, {x2, x3, x4},{corMatrix}, {x3 = g * x2 - x4}, g, Table[i,{i,.1, 1, .1}], 10^-6, "SDP_Task"]
 [Matrix] Phasing Matrices.
 [LoopEqs] Phasing LoopEqs.
 Exporting...
-The Task.json has been created.
+The SDP_Task.json has been created.
 Variables in allVars have been renamed. 
 ```
 
 便会在执行目录下生成 `Task.json` 文件。更多例子请参考 `source/example`。
 
-### `python`
+### python
 
 ```txt
  __________________________ 
@@ -96,7 +113,14 @@ options:
 |参数值 |目标函数值| x1 | x2 | .. | xn |
 |-------|----------|----|----|----|----|
 |...    |...       |... |... |... |... |
-  
+
+## 其他
+
+`source` 文件夹内：
+- `example\`: `Mathematica` 的例子
+- `ToCVXPY.wl`: `Mathematica` 端程序
+- `slurm.sh`: `Slurm` 脚本模板
+
 ## 问题
 
 - cvxpy 接口给定精度和实际精度不一致，见 [cvxpy_issue_434](https://github.com/cvxpy/cvxpy/issues/434)
