@@ -1,6 +1,6 @@
 # PlugMJ
 
-从 `Mathematica` 中导出 SDP 问题的 JSON 文件，再应用 `python` 端调用 `cvxpy` 或者 `MOSEK Fusion API` 执行求解。
+从 `Mathematica` 中导出 SDP 问题的 JSON 文件，再应用 `python` 端调用 `cvxpy` 或者 `MOSEK Optimizer API` 执行求解。
 
 ## 安装
 
@@ -12,7 +12,7 @@
 
 `Mathematica` 端程序安装：
 
-- 将 `source/ToCVXPY.ml` 拷贝到 `Mathematica` 的 `Packages` 目录下
+- 将 `source/ToCVXPY.ml` 拷贝到 `Mathematica` 的 `Applications` 目录下
 
 `python` 端程序安装：
 

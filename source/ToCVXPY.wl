@@ -3,7 +3,7 @@
 BeginPackage["ToCVXPY`"]
 
 
-Print["ToCVXPY beta 1.2.1"]
+Print["ToCVXPY beta 1.2.3"]
 Print["------------------"]
 Print["Use GenerateTask[target, allVars, sdpMatrix, loopEquations, para, lambda, eps]"]
 Print["to create Task.json in order to transport the SDP question into CVXPY"]
@@ -16,17 +16,18 @@ Print["  loopEquations: Equations constrains. Can include a parameter."]
 Print["  para: The parameter shown in loopEquations. "]
 Print["  lambda: The discrete values of para. "]
 Print["  eps: The threshold of the SDP algorithm. It must be in the interval [\!\(\*SuperscriptBox[\(10\), \(-9\)]\), \!\(\*SuperscriptBox[\(10\), \(-3\)]\)]"]
+Print["  name: Name of the task. Task will be saved to 'name.json'. Task as default."]
 Print["------------------"]
-Print["DREAM @ 20240603"]
+Print["DREAM @ 20241023"]
 
 
-GenerateTask::usage = "GenerateTask[target, allVars, sdpMatrix, loopEquations, para, lambda, eps]"
+GenerateTask::usage = "GenerateTask[target, allVars, sdpMatrix, loopEquations, para, lambda, eps, name]"
 
 
 Begin["`Private`"]
 
 
-(* ::Section:: *)
+(* ::Section::Closed:: *)
 (*\:53d8\:91cf\:6620\:5c04*)
 
 
@@ -37,7 +38,7 @@ Begin["`Private`"]
 CVXVarMap[vars_,paras_]:=Dispatch[Append[Table[vars[[i]]->w[i - 1],{i,1,Length[vars]}],paras->g]//Flatten]
 
 
-(* ::Section:: *)
+(* ::Section::Closed:: *)
 (*\:77e9\:9635\:4e0a\:4e09\:89d2\:5316*)
 
 
@@ -148,7 +149,7 @@ Prepend[Table[{coeff[[i]],vars[[i]]},{i,1,Length[vars]}], cons]
 ]
 
 
-(* ::Section:: *)
+(* ::Section::Closed:: *)
 (*\:751f\:6210*)
 
 
@@ -164,10 +165,11 @@ Prepend[Table[{coeff[[i]],vars[[i]]},{i,1,Length[vars]}], cons]
 (*para                      : \:95ee\:9898\:4e2d\:6d89\:53ca\:5230\:7684\:53c2\:6570\:ff0c\:5b83\:5c06\:4f1a\:88ab\:5728\:540e\:9762\:7684\:7a0b\:5e8f\:7edf\:4e00\:66ff\:6362\:4e3a g*)
 (*lambda               : \:53c2\:6570\:7684\:79bb\:6563\:503c*)
 (*eps                        : \:6536\:655b\:7cbe\:5ea6\:ff0c\:4ec5\:652f\:6301 10^-3-10^-9*)
+(*name                   : \:4efb\:52a1\:540d *)
 
 
 ClearAll[GenerateTask]
-GenerateTask[target_:List, allVars_ : List,sdpMatrix_ : List, loopEquations_ : List,para_, lambda_ : List, eps_:10^-6]:=Module[{vmap,allLE, dims, mats, tar, blockSize},
+GenerateTask[target_:List, allVars_ : List,sdpMatrix_ : List, loopEquations_ : List,para_, lambda_ : List, eps_:10^-6, name_:"Task"]:=Module[{vmap,allLE, dims, mats, tar, blockSize},
 (* \:5224\:65ad eps \:5927\:5c0f *)
 If[eps > 10^-3||eps < 10^-9,Print["EPS must be smaller than \!\(\*SuperscriptBox[\(10\), \(-3\)]\) and bigger than \!\(\*SuperscriptBox[\(10\), \(-9\)]\)"];Return];
 (* \:5224\:65ad allVars \:548c target \:7684\:5f62\:72b6 *)
@@ -184,9 +186,9 @@ allLE = PhaseEq[#, vmap] &/@ loopEquations;
 tar = Cases[ArrayRules[target], Rule[{x_},y_]/;NumericQ[x]:>{x-1,y}];
 
 Print["Exporting..."];
-Export["Task.json",
+Export[name <> ".json",
 {
-"taskname" -> "DreamTest",
+"taskname" -> name,
 "variable_length" -> Count[Normal[vmap]/.Rule[x_,y_]:>y,w[i_]],
 "eps"->eps,
 "para_value"->lambda,
@@ -197,7 +199,7 @@ Export["Task.json",
 "eqConstrains"->allLE
 }, "JSON", "Compact" -> True
 ];
-Print["The Task.json has been created."];
+Print["The " <> name <>  ".json has been created."];
 Print["Variables in allVars have been renamed. "];
 (*Grid[Transpose[vmap[[;;-2]]/.Rule->List]/.w[x_]:>x]*)
 ]
@@ -205,4 +207,3 @@ Print["Variables in allVars have been renamed. "];
 
 End[];
 EndPackage[];
-
