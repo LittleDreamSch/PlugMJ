@@ -112,6 +112,10 @@ def build_solver_options(args):
     if args.eps is not None:
         solver_options["eps"] = args.eps
 
+    # direction
+    if args.direction is not None:
+        solver_options["direction"] = args.direction
+
     return solver_options
 
 
@@ -133,9 +137,9 @@ def build_solver(args):
     solver_options = build_solver_options(args)
 
     if args.interface == "original":  # 原始接口
-        task = MosekInterface(data, logger, saver, args.direction, **solver_options)
+        task = MosekInterface(data, logger, saver, **solver_options)
     elif args.interface == "cvxpy":  # cvxpy 接口
-        task = CvxpyInterface(data, logger, saver, args.direction, **solver_options)
+        task = CvxpyInterface(data, logger, saver, **solver_options)
 
     return task, logger
 

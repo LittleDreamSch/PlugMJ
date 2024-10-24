@@ -21,7 +21,6 @@ class MosekInterface(Interface):
         task_loader: TaskLoader,
         logger: Log,
         data_saver: DataSaver,
-        direction: str,
         **solver_options,
     ):
         """
@@ -31,11 +30,14 @@ class MosekInterface(Interface):
             task_loader (TaskLoader): 任务加载器
             logger (Log): 日志器
             data_saver (DataSaver): 数据保存器
-            direction (str): 优化方向
             **solver_options: MOSEK 参数
         """
-        super().__init__(task_loader, logger, data_saver, direction, **solver_options)
+        super().__init__(task_loader, logger, data_saver, **solver_options)
         logger.info("use Mosek Fusion interface")
+
+        # 设置参数
+        self.solver_options_handler(solver_options)
+        self.mosek_options_handler()
 
         # 初始化 MOSEK
         self.init_mosek()
@@ -45,10 +47,6 @@ class MosekInterface(Interface):
 
         ## Logger
         self.task.set_Stream(mosek.streamtype.log, self.mosek_log)
-
-        # 设置参数
-        self.solver_options_handler(solver_options)
-        self.mosek_options_handler()
 
     def mosek_log(self, msg):
         """
@@ -81,7 +79,8 @@ class MosekInterface(Interface):
         # 设置 PSD 变量的维数
         self.task.appendbarvars(dims)
         # 设置精度
-        self.eps = self.task_loader.eps
+        if not hasattr(self, "eps_reset"):  # 避免和 solver_options 冲突
+            self.eps = self.task_loader.eps
         # 设置初始点
         self.set_start_point()
 

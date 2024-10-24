@@ -14,7 +14,6 @@ class Interface:
         task_loader: TaskLoader,
         logger: Log,
         data_saver: DataSaver,
-        direction: str,
         **solver_options,
     ):
         """
@@ -24,18 +23,12 @@ class Interface:
             task_loader (TaskLoader): 任务加载器
             logger (Log): 日志器
             data_saver (DataSaver): 数据保存器
-            direction (str): 优化方向
             **solver_options: 求解器参数
         """
         self.task_loader = task_loader
         self.logger = logger
         self.data_saver = data_saver
         self.solver_options = solver_options
-        if direction not in ["min", "max"]:
-            logger.error(f"Invalid direction: {direction}. Must be either min or max.")
-            exit(1)
-        else:
-            self.direction = direction
 
         self._psd = []
 
@@ -55,7 +48,20 @@ class Interface:
         eps_opt = solver_options.pop("eps", None)
         if eps_opt is not None:
             self.logger.info(f"Reset eps to {eps_opt}")
+            self.eps_reset = True  # 避免和 task_loader 中的 eps 冲突
             self.eps = eps_opt
+
+        # 方向
+        direction = solver_options.pop("direction", None)
+        if direction is not None:
+            if direction not in ["min", "max"]:
+                self.logger.error(
+                    f"Invalid direction: {direction}. Must be either min or max."
+                )
+                exit(1)
+            else:
+                self.logger.info(f"Direction: {direction}")
+                self.direction = direction
 
     @abstractmethod
     def optimize(self):

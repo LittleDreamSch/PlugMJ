@@ -24,7 +24,6 @@ class CvxpyInterface(Interface):
         task_loader: TaskLoader,
         log: Log,
         data_saver: DataSaver,
-        direction: str,
         **solver_options,
     ):
         """
@@ -34,12 +33,13 @@ class CvxpyInterface(Interface):
             task_loader (TaskLoader): 任务加载器
             logger (Log): 日志器
             data_saver (DataSaver): 数据保存器
-            direction (str): 优化方向
             **solver_options: MOSEK 参数
         """
-        super().__init__(task_loader, log, data_saver, direction, **solver_options)
+        super().__init__(task_loader, log, data_saver, **solver_options)
         log.info("use cvxpy interface")
 
+        # 处理参数
+        self.solver_options_handler(solver_options)
         # 初始化 cvxpy
         self.init_cvxpy()
         # 初始化问题
@@ -47,9 +47,6 @@ class CvxpyInterface(Interface):
         # 时间记录
         self.total_time = 0.0
         self.total_complie_time = 0.0
-
-        # 处理参数
-        self.solver_options_handler(solver_options)
 
     def init_cvxpy(self):
         """
@@ -67,7 +64,8 @@ class CvxpyInterface(Interface):
         # 线性不等式
         self.ineqs = -1, 1
         # 精度
-        self.eps = self.task_loader.eps
+        if not hasattr(self, "eps_reset"):  # 避免与 solver_options_handler 冲突
+            self.eps = self.task_loader.eps
 
     def init_problem(self):
         """
