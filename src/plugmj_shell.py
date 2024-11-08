@@ -49,8 +49,10 @@ def generate_mosek_options(args):
         "MSK_IPAR_NUM_THREADS": int(args.threads),
         # 日志衰减
         "MSK_IPAR_LOG_CUT_SECOND_OPT": 0,
-        # 求解对偶问题
-        # "MSK_IPAR_INTPNT_SOLVE_FORM": "MSK_SOLVE_DUAL",
+        # 起始点
+        # "MSK_IPAR_INTPNT_STARTING_POINT": "MSK_STARTING_POINT_CONSTANT",
+        # "MSK_DPAR_INTPNT_TOL_DSAFE": 10,
+        # "MSK_DPAR_INTPNT_TOL_PSAFE": 0.001,
     }
 
 

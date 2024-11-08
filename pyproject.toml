@@ -22,4 +22,4 @@ namespace = false
 package-dir = {"" = "src"}
 
 [project.scripts]
-PlugMJ = "main:main"
+PlugMJ = "plugmj_shell:main"
