@@ -50,9 +50,12 @@ def generate_mosek_options(args):
         # 日志衰减
         "MSK_IPAR_LOG_CUT_SECOND_OPT": 0,
         # 起始点
+        # WARNING: 修改启动点会导致结果不稳定
         # "MSK_IPAR_INTPNT_STARTING_POINT": "MSK_STARTING_POINT_CONSTANT",
         # "MSK_DPAR_INTPNT_TOL_DSAFE": 10,
         # "MSK_DPAR_INTPNT_TOL_PSAFE": 0.001,
+        # Tolerence
+        # "MSK_DPAR_INTPNT_CO_TOL_NEAR_REL": 100,
     }
 
 
@@ -134,6 +137,7 @@ def build_solver(args):
 
     saver = DataSaver(args.output, logger)
     data = TaskLoader(args.task, logger, args.name)
+    # data.to_sdpb_json("PMP.json")
     task = None
 
     solver_options = build_solver_options(args)

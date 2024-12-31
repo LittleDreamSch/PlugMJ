@@ -4,7 +4,7 @@ version = "1.2.3"
 description = "从 Mathematica 导出表示 SDP 问题的 Json 文件，python 端读取 Json 文件，并使用 Mosek 求解 SDP 问题"
 authors = [{name="Dream", email="449185666@qq.com"}]
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.8"
 dependencies = [
     "cvxpy>=1.5.3",
     "loguru>=0.7.2",
@@ -16,10 +16,13 @@ dependencies = [
 [build-system]
 requires = ["setuptools", "wheel"]
 build-backend = "setuptools.build_meta"
-namespace = false
+namespace = true
 
 [tool.setuptools]
 package-dir = {"" = "src"}
 
 [project.scripts]
 PlugMJ = "plugmj_shell:main"
+
+[tool.pyright]
+extraPaths = ["/opt/anaconda3/lib/python3.11/site-packages/"]

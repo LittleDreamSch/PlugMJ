@@ -18,10 +18,12 @@ class TaskLoader:
         """
         初始化
 
-        Args:
-            task_json_file: 给定的 Json 文件路径
-            logger: 日志记录器
-            name: 任务名
+        Args
+        ---
+        task_json_file: 给定的 Json 文件路径
+        logger: 日志记录器
+        name: 任务名
+
         """
         # 判断 task_json_file 是否存在
         if not os.path.exists(task_json_file):
@@ -82,12 +84,14 @@ class TaskLoader:
         """
         加载目标函数
 
-        Args:
-            raw_target: 原始目标函数数据，[[c_index_1, c_value_1], [c_index_2, c_value_2],...]
+        Args
+        ---
+        raw_target: 原始目标函数数据，[[c_index_1, c_value_1], [c_index_2, c_value_2],...]
 
-        Returns:
-            c_index: 目标函数变量索引
-            c_value: 目标函数系数
+        Info
+        ---
+        c_index: 目标函数变量索引
+        c_value: 目标函数系数
         """
         self.logger.info("Loading target function...")
         c_index = [c[0] for c in raw_target]
@@ -98,7 +102,8 @@ class TaskLoader:
         """
         加载 PSD 矩阵
 
-        Args:
+        Args
+        ---
             dims: 矩阵维度
             raw_psd: 原始 PSD 矩阵数据，每个矩阵的格式为
                      {
@@ -109,7 +114,8 @@ class TaskLoader:
                      }
                      每一项描述了一个 PSD 矩阵的上三角部分，其中 Index 为矩阵的索引，ROW/COL 为非零元素的行/列索引，VAL 为非零元素的值，Cons 为常数项
 
-        Returns:
+        Returns
+        ---
             psd: [
                      [cons_coo_1, [F_coo_1], [Index_1]],
                      [cons_coo_2, [F_coo_2], [Index_2]],
@@ -173,8 +179,9 @@ class TaskLoader:
 
         线性约束可以被表示为 (A + g * Ag) @ x == b + g * bg
 
-        Args:
-            raw_lc: 原始线性约束数据
+        Args
+        ---
+        raw_lc: 原始线性约束数据
 
         """
         self.logger.info("Loading linear constraints...")
@@ -229,3 +236,110 @@ class TaskLoader:
         g_vals = [round(_, 3) for _ in self.g_vals]
         s = f"""*** Task Info ***\n- Name      : {self.name}\n- Variables : {self.n_var}\n- Parameters: {g_vals}\n- EPS       : {self.eps}\n- Target    : {self.target}\n- PSD       : {self.n_psd}\n- PSD dim   : {self.d_psd}\n- Linear    : {self.n_lc}\n*****************"""
         return s
+
+    def to_sdpb_json(self, json_path):
+        """
+        将任务信息保存为 SDPB 格式的 PMP Json 文件
+
+        Args
+        ---
+        `json_path`: 保存路径
+
+        Info
+        ---
+        PMP JSON:
+        ```json
+        {
+            "objective": [
+                c_0,
+                c_1,
+                ...
+                c_n
+            ],
+            "PositiveMatrixWithPrefactorArray":[
+                PSD_1,
+                PSD_2,
+                ...
+                PSD_N
+            ]
+        }
+        ```
+        其中 `PSD_i` 的格式为
+        ```json
+        {
+            "polynomials": [
+                [[[A_{0, 11}], [A_{1, 11}], ..., [A_{M, 11}]], [[A_{0, 21}], ...]],
+                [[[A_{0, 12}], [A_{1, 12}], ..., [A_{M, 12}]], [[A_{0, 22}], ...]],
+                ...
+                [[[A_{0, 1m}], [A_{1, 1m}], ..., [A_{M, 1m}]], [[A_{0, 2m}], ...]],
+            ]
+        }
+        ```
+        """
+        # TODO: SDPB 似乎不支持等式
+        if self.n_lc > 0:
+            self.logger.warning(
+                f"SDPB does not support linear constraints, {self.n_lc} constraints will be ignored."
+            )
+
+        self.logger.info("Parsing PSD to SDPB PMP format...")
+
+        # 目标函数
+        objective = ["0"] * (self.n_var + 1)  # SDPB 目标函数第一个是 bias
+        for _ in range(len(self.target[0])):
+            idx = self.target[0][_]
+            val = self.target[1][_]
+            objective[idx + 1] = str(-val)  # SDPB 默认目标为 Maximize
+
+        # PSD
+        psds = list(map(self.parse_sdpb_psd, self.psd))
+        # 包装为字典
+        psd_dict = [
+            {"polynomials": psds[i].astype(str).tolist()} for i in range(len(psds))
+        ]
+
+        js = {"objective": objective, "PositiveMatrixWithPrefactorArray": psd_dict}
+
+        self.logger.debug(js)
+
+        # output
+        with open(json_path, "w") as f:
+            json.dump(js, f, indent=2)
+
+        self.logger.success(f"Save to SDPB PMP Json {json_path}")
+
+    def parse_sdpb_psd(self, psd):
+        """
+        将 PSD 解析为 SDPB 格式
+
+        Args
+        ---
+        `psd`: [cons_coo, [F_coo], [Index]]
+
+        Returns
+        ---
+        `polynomials`: (dim, dim, n_var+1, 1)
+        """
+        # 形状
+        shape = psd[0].shape[0]
+
+        # 列, 行, var 索引, 1
+        polynomials = np.zeros((shape, shape, self.n_var + 1, 1))
+
+        def add_coo(pol, cmat, index):
+            """用 cmat 填充 polynomials"""
+            col = cmat.col
+            row = cmat.row
+            val = cmat.data
+            for i in range(len(col)):
+                pol[row[i], col[i], index, 0] = val[i]
+                pol[col[i], row[i], index, 0] = val[i]  # sym
+            return pol
+
+        # 常数项
+        polynomials = add_coo(polynomials, psd[0], 0)
+        # 其他
+        for idx, each_psd in enumerate(psd[1]):
+            polynomials = add_coo(polynomials, each_psd, idx + 1)
+
+        return polynomials
