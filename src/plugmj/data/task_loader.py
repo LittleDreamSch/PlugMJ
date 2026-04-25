@@ -171,37 +171,39 @@ class TaskLoader:
 
         (i1[0] + i1[1] * g) * x[j1] + ... == -(cons[0] + cons[1] * g)
 
-        self.lc(tuple):
-            A (coo, n x n_var): 线性约束矩阵常数项
-            Ag(coo, n x n_var): 线性约束矩阵变量项
-            b (np.array, n x 1) : 线性约束常数项
-            bg(np.array, n x 1) : 线性约束变量项
+        即: (C_0 + C_1*g) @ x + (D_0 + D_1*g) = 0
 
-        线性约束可以被表示为 (A + g * Ag) @ x == b + g * bg
+        self._lc: [(C_k, D_k), ...] 多项式系数列表
+            C_k (coo, n_lc x n_var): λ^k 对应的系数矩阵
+            D_k (np.array, n_lc x 1): λ^k 对应的常数项
+
+        线性约束: sum_k (C_k * λ^k) @ x + sum_k (D_k * λ^k) = 0
 
         Args
         ---
         raw_lc: 原始线性约束数据
-
         """
         self.logger.info("Loading linear constraints...")
+
+        if len(raw_lc) == 0:
+            self._lc = []
+            return
+
         A_row, A_col, A_val, Ag_val = [], [], [], []
         A_shape = (len(raw_lc), self.n_var)
-        b, bg = [], []
+        d0, d1 = [], []
         for idx, each_lc in enumerate(raw_lc):
-            b.append([-each_lc[0][0]])
-            bg.append([-each_lc[0][1]])
+            d0.append([each_lc[0][0]])
+            d1.append([each_lc[0][1]])
             A_row.extend([idx] * len(each_lc[1:]))
             A_col.extend([_[1] for _ in each_lc[1:]])
             A_val.extend([_[0][0] for _ in each_lc[1:]])
             Ag_val.extend([_[0][1] for _ in each_lc[1:]])
 
-        self._lc = (
-            coo((A_val, (A_row, A_col)), shape=A_shape),
-            coo((Ag_val, (A_row, A_col)), shape=A_shape),
-            np.array(b),
-            np.array(bg),
-        )
+        self._lc = [
+            (coo((A_val, (A_row, A_col)), shape=A_shape), np.array(d0)),
+            (coo((Ag_val, (A_row, A_col)), shape=A_shape), np.array(d1)),
+        ]
 
     def log_info(self):
         """

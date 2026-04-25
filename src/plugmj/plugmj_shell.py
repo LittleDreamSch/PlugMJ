@@ -1,13 +1,19 @@
 import argparse
+from importlib.metadata import version
+
+import os as _os
 
 from plugmj.data.task_loader import TaskLoader
+from plugmj.data.folder_task_loader import FolderTaskLoader
 from plugmj.interface.mosek_interface import MosekInterface
 from plugmj.interface.cvxpy_interface import CvxpyInterface
 from plugmj.data.data_saver import DataSaver
 from plugmj.utils.log import Log
 
-cow = """ __________________________ 
-< PlugMJ Beta 1.2.3 @Dream >
+__version__ = version("PlugMJ")
+
+cow = f""" __________________________
+< PlugMJ {__version__} @Dream >
  -------------------------- 
         \\   ^__^
          \\  (OO)\\_______
@@ -70,7 +76,7 @@ def parser_handler():
     parser = argparse.ArgumentParser(
         prog="PlugMJ", description=desc, formatter_class=argparse.RawTextHelpFormatter
     )
-    parser.add_argument("-t", "--task", help="Path of the task file.")
+    parser.add_argument("-t", "--task", help="Path of the task file or directory.")
     parser.add_argument(
         "-o", "--output", default="output.csv", help="Path of the output file."
     )
@@ -136,7 +142,23 @@ def build_solver(args):
     print_cow(logger)
 
     saver = DataSaver(args.output, logger)
-    data = TaskLoader(args.task, logger, args.name)
+
+    # 默认日志路径：任务目录下的 PlugMJ.log
+    if not args.log:
+        task_dir = args.task if _os.path.isdir(args.task) else _os.path.dirname(args.task) or "."
+        args.log = _os.path.join(task_dir, "PlugMJ.log")
+        logger.logger.add(
+            args.log,
+            format="{time:YYYY-MM-DD @ HH:mm:ss} | {level.name:<7} | {message}",
+            level="DEBUG",
+            enqueue=True,
+            backtrace=True,
+        )
+
+    if _os.path.isdir(args.task):
+        data = FolderTaskLoader(args.task, logger, args.name)
+    else:
+        data = TaskLoader(args.task, logger, args.name)
     # data.to_sdpb_json("PMP.json")
     task = None
 
@@ -154,10 +176,13 @@ def main():
     # 解析命令行参数
     parser, args = parser_handler()
 
-    # 判断 --task 是否为空
+    # 判断 --task 是否为空，自动检测当前目录
     if args.task is None:
-        parser.print_help()
-        exit(1)
+        if _os.path.isfile("task.json") and _os.path.isdir("PSD"):
+            args.task = "."
+        else:
+            parser.print_help()
+            exit(1)
 
     task, logger = build_solver(args)
 

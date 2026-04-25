@@ -53,11 +53,12 @@ class CvxpyInterface(Interface):
         """
         # 变量和常数
         self.x = cp.Variable(shape=(self.task_loader.n_var, 1), name="x")
-        self.para = cp.Parameter(name="g", value=0)
         # 目标函数
         self.target = self.task_loader.target[0], self.task_loader.target[1]
-        # 线性约束
-        self.lc = self.task_loader.lc
+        # 线性约束：为每个多项式阶次创建一个参数
+        lc_data = self.task_loader.lc
+        self.paras = [cp.Parameter(name=f"p{k}") for k in range(len(lc_data))]
+        self.lc = lc_data
         # psd
         self.psd = self.task_loader.psd
         # 线性不等式
@@ -91,13 +92,15 @@ class CvxpyInterface(Interface):
 
     @lc.setter
     def lc(self, lcs):
-        A, Ag, b, bg = lcs
-        if A.shape[0] != 0 and Ag.shape[0] != 0:
-            self._lc = [A @ self.x + self.para * (Ag @ self.x) == b + bg * self.para]
-        elif A.shape[0] == 0 and Ag.shape[0] != 0:
-            self._lc = [self.para * (Ag @ self.x) == b + bg * self.para]
-        elif A.shape[0] != 0 and Ag.shape[0] == 0:
-            self._lc = [A @ self.x == b + bg * self.para]
+        # lcs: [(C_k, D_k), ...], 约束 sum_k (C_k*λ^k)@x + sum_k (D_k*λ^k) = 0
+        if len(lcs) == 0:
+            self._lc = []
+            return
+        expr = sum(
+            self.paras[k] * (C_k @ self.x + D_k)
+            for k, (C_k, D_k) in enumerate(lcs)
+        )
+        self._lc = [expr == 0]
 
     @property
     def psd(self):
@@ -230,8 +233,9 @@ class CvxpyInterface(Interface):
             self.logger.info(
                 f"[{i + 1} / {len(self.task_loader.g_vals)}] Set g = {g_val}"
             )
-            # 更新 g 值
-            self.para.value = g_val
+            # 更新参数值：paras[k] = g_val^k
+            for k in range(len(self.paras)):
+                self.paras[k].value = g_val ** k
             # 优化
             try:
                 self.problem.solve(
@@ -248,12 +252,18 @@ class CvxpyInterface(Interface):
             self.status_handler(g_val, self.problem.status)
             # 打印时间
             self.update_step_time()
+            # 采样内存
+            self.sample_memory()
 
         # 输出总时间
         self.print_total_time()
+        # 输出内存
+        self.print_memory()
 
         # 输出结果到文件
         self.data_saver.save()
+        # 保存统计信息
+        self.data_saver.save_stats(self.total_time, self._mem_samples)
 
     def status_handler(self, g_val, status):
         """

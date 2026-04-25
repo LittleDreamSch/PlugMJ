@@ -102,6 +102,8 @@ class MosekInterface(Interface):
         优化问题
         """
         self.logger.info("Start optimizing")
+        import time
+        total_time = 0.0
         for i, g_val in enumerate(self.task_loader.g_vals):
             self.logger.info("======================")
             self.logger.info(
@@ -110,8 +112,13 @@ class MosekInterface(Interface):
             # 更新 g 值
             self.g = g_val
             # 求解
+            t0 = time.time()
             self.task.optimize()
+            total_time += time.time() - t0
             self.task.solutionsummary(mosek.streamtype.msg)
+
+            # 采样内存
+            self.sample_memory()
 
             # 获取问题状态
             solsta = self.task.getsolsta(mosek.soltype.itr)
@@ -141,6 +148,10 @@ class MosekInterface(Interface):
                 )
         # 保存结果
         self.data_saver.save()
+        # 输出内存
+        self.print_memory()
+        # 保存统计信息
+        self.data_saver.save_stats(total_time, self._mem_samples)
 
     @property
     def target(self):
@@ -222,9 +233,15 @@ class MosekInterface(Interface):
         self._g = g
 
         # 使用新的 g 去更新线性约束
-        A, Ag, b, bg = self.task_loader.lc
-        AA = coo(A + g * Ag)
-        bb = b + g * bg
+        # lc: [(C_k, D_k), ...], 约束 sum(C_k*λ^k)@x + sum(D_k*λ^k) = 0
+        lc = self.task_loader.lc
+        if len(lc) == 0:
+            return
+
+        A_eff = sum(C_k * g**k for k, (C_k, _) in enumerate(lc))
+        d_eff = sum(D_k * g**k for k, (_, D_k) in enumerate(lc))
+        AA = coo(A_eff)
+        bb = -d_eff
         bb = bb.squeeze(-1)
         self.task.putaijlist(AA.row, AA.col, AA.data)
         self.task.putconboundlist(range(len(bb)), [mosek.boundkey.fx] * len(bb), bb, bb)

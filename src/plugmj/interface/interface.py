@@ -3,6 +3,8 @@
 """
 
 from abc import abstractmethod
+import resource
+
 from plugmj.data.task_loader import TaskLoader
 from plugmj.data.data_saver import DataSaver
 from plugmj.utils.log import Log
@@ -31,6 +33,7 @@ class Interface:
         self.solver_options = solver_options
 
         self._psd = []
+        self._mem_samples = []
 
     def solver_options_handler(self, solver_options: dict):
         """
@@ -163,6 +166,20 @@ class Interface:
                 Ag, A, bg, b : (A + g * Ag) @ x == b + g * bg
         """
         pass
+
+    def sample_memory(self):
+        """采样当前 RSS（MB），记录到 _mem_samples。"""
+        import sys
+        rss = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+        mb = rss / (1024 * 1024) if sys.platform == "darwin" else rss / 1024
+        self._mem_samples.append(mb)
+
+    def print_memory(self):
+        """打印内存占用统计。"""
+        if not self._mem_samples:
+            return
+        self.logger.info(f"- Peak Memory Usage       : {max(self._mem_samples):.1f} MB")
+        self.logger.info(f"- Avg  Memory Usage       : {sum(self._mem_samples) / len(self._mem_samples):.1f} MB")
 
     @staticmethod
     def tolerance_params():
