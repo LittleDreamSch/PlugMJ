@@ -8,10 +8,10 @@ API: https://docs.mosek.com/latest/pythonapi/intro_info.html
 
 import mosek
 import numpy as np
-from interface.interface import Interface
-from data.task_loader import TaskLoader
-from data.data_saver import DataSaver
-from utils.log import Log
+from plugmj.interface.interface import Interface
+from plugmj.data.task_loader import TaskLoader
+from plugmj.data.data_saver import DataSaver
+from plugmj.utils.log import Log
 from scipy.sparse import coo_matrix as coo
 
 

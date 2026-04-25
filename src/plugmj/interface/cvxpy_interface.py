@@ -9,13 +9,12 @@ cvxpy 接口
 # 参考 https://www.cvxpy.org/tutorial/advanced/index.html
 
 import cvxpy as cp
-from cvxpy.reductions.solvers import solver
 import numpy as np
 from scipy.sparse import coo_matrix
-from interface.interface import Interface
-from data.task_loader import TaskLoader
-from data.data_saver import DataSaver
-from utils.log import Log
+from plugmj.interface.interface import Interface
+from plugmj.data.task_loader import TaskLoader
+from plugmj.data.data_saver import DataSaver
+from plugmj.utils.log import Log
 
 
 class CvxpyInterface(Interface):
@@ -234,12 +233,17 @@ class CvxpyInterface(Interface):
             # 更新 g 值
             self.para.value = g_val
             # 优化
-            self.problem.solve(
-                solver=cp.MOSEK,
-                verbose=True,
-                canon_backend=cp.SCIPY_CANON_BACKEND,
-                mosek_params=msk_params,
-            )
+            try:
+                self.problem.solve(
+                    solver=cp.MOSEK,
+                    verbose=True,
+                    canon_backend=cp.SCIPY_CANON_BACKEND,
+                    mosek_params=msk_params,
+                )
+            except Exception as e:
+                self.logger.error(
+                    f"[g = {g_val}] Mosek reports error: {e}. Please see the log file for details. The result may not achieve the desired accuracy."
+                )
             # 获得结果
             self.status_handler(g_val, self.problem.status)
             # 打印时间
@@ -280,6 +284,8 @@ class CvxpyInterface(Interface):
         else:
             # NOTE: 关于 UNKNOW status: https://docs.mosek.com/latest/dotnetapi/debugging-log.html
             # UNKNOW STATUS 指的是因为数值的问题，mosek 可能达不到要求的收敛条件，结果可能依旧有效
+
+            # TODO: UNKNOW status 是否也可以保存结果？
             self.logger.error(f"[g = {g_val}] STATUS: UNKNOW. Result won't be stored.")
 
     def update_step_time(self):

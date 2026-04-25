@@ -3,7 +3,7 @@
 """
 
 import pandas as pd
-from utils.log import Log
+from plugmj.utils.log import Log
 
 
 class DataSaver:

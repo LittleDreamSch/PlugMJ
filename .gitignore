@@ -1,0 +1,14 @@
+dist
+*.egg-info
+__pycache__/
+**/*.csv
+src/output.csv
+task
+.gitignore
+**/.DS_Store
+**/.python-version
+uv.lock
+test
+source/example/Example4
+source/example/Easy4.json
+source/example/Task.json

@@ -1,10 +1,10 @@
 import argparse
 
-from data.task_loader import TaskLoader
-from interface.mosek_interface import MosekInterface
-from interface.cvxpy_interface import CvxpyInterface
-from data.data_saver import DataSaver
-from utils.log import Log
+from plugmj.data.task_loader import TaskLoader
+from plugmj.interface.mosek_interface import MosekInterface
+from plugmj.interface.cvxpy_interface import CvxpyInterface
+from plugmj.data.data_saver import DataSaver
+from plugmj.utils.log import Log
 
 cow = """ __________________________ 
 < PlugMJ Beta 1.2.3 @Dream >

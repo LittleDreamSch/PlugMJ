@@ -3,9 +3,9 @@
 """
 
 from abc import abstractmethod
-from data.task_loader import TaskLoader
-from data.data_saver import DataSaver
-from utils.log import Log
+from plugmj.data.task_loader import TaskLoader
+from plugmj.data.data_saver import DataSaver
+from plugmj.utils.log import Log
 
 
 class Interface:
