@@ -95,7 +95,7 @@ class MosekInterface(Interface):
         # 设置变量，线性约束于此引入
         self.g = 0
         # 不等式约束，-1 <= x[i] <= 1
-        self.parse_ineqs()
+        # self.parse_ineqs()     # 注释掉默认的 -1 <= x <= 1 约束
 
     def optimize(self):
         """

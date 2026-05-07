@@ -62,7 +62,7 @@ class CvxpyInterface(Interface):
         # psd
         self.psd = self.task_loader.psd
         # 线性不等式
-        self.ineqs = -1, 1
+        # self.ineqs = -1, 1
         # 精度
         if not hasattr(self, "eps_reset"):  # 避免与 solver_options_handler 冲突
             self.eps = self.task_loader.eps
@@ -187,7 +187,7 @@ class CvxpyInterface(Interface):
         """
         线性不等式
         """
-        if self._ineqs is None:
+        if getattr(self, '_ineqs', None) is None:
             self._ineqs = []
         return self._ineqs
 

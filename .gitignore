@@ -12,3 +12,5 @@ test
 source/example/Example4
 source/example/Easy4.json
 source/example/Task.json
+.claude/settings.local.json
+src/plugmj/interface/.claude/settings.local.json

@@ -69,6 +69,10 @@ src/plugmj/
 - CVXPY's `eps` parameter doesn't reliably control MOSEK tolerance — cvxpy may report `OPTIMAL` with large constraint violations. The CVXPY interface works around this by passing all MOSEK tolerance parameters directly. See [cvxpy#434](https://github.com/cvxpy/cvxpy/issues/434).
 - `numpy` is pinned to `<2.0` due to compatibility constraints with MOSEK/cvxpy.
 
+## Instructions
+
+- If anything is unclear or ambiguous, ask the user for clarification rather than guessing.
+
 ## Dependencies
 
 - `cvxpy>=1.5.3`, `mosek>=10.2.5` (requires MOSEK license), `numpy<2.0`, `pandas>=2.2.3`, `loguru>=0.7.2`
